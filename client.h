@@ -14,6 +14,5 @@ struct Config {
 };
 
 void readConfig();
-char* readArgLine(char* str, FILE* stream);
 
 #endif

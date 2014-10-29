@@ -3,6 +3,7 @@
 #include "constants.h"
 #include "utility.h"
 #include "unp.h"
+#include "lib/get_ifi_info_plus.c"
 
 struct Config config;
 
@@ -28,15 +29,9 @@ void readConfig() {
     res[6] = fscanf(fConfig, "%ud", &config.mu);
 
     for (int i = 0; i < 7; ++i) {
-        if (res[i] < 0) {
+        if (res[i] <= 0) {
             errQuit(ERR_READ_CLIENT_IN);
         }
     }
 }
 
-char* readArgLine(char* str, FILE* stream) {
-    if (fgets(str, MAXCHAR, stream) == NULL) {
-        errQuit(ERR_READ_CLIENT_IN);
-    }
-    return str;
-}

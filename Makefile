@@ -2,23 +2,27 @@ CC = gcc
 UNP_PATH = ../unpv13e
 LIBS = -lresolv -lnsl -lpthread $(UNP_PATH)/libunp.a
 
-IFLAG = -I$(UNP_PATH)/lib
+IFLAG = -I$(UNP_PATH)/lib 
 CFLAGS = -g -O2 -std=gnu99
 FLAGS = $(IFLAG) $(CFLAGS)
 
 
 all: client server
 
-client: client.o  utility.o
-	$(CC) $(CFLAGS) -o client client.o utility.o $(LIBS)
+client: client.o  utility.o get_ifi_info_plus.o
+	$(CC) $(CFLAGS) -o client client.o utility.o get_ifi_info_plus.o $(LIBS)
 client.o: client.c client.h constants.h 
 	$(CC) $(FLAGS) -c client.c $(LIBS)
-server: server.o
-	$(CC) $(CFLAGS) -o server server.o $(LIBS)
-server.o: server.c server.h constants.h
+server: server.o get_ifi_info_plus.o
+	$(CC) $(CFLAGS) -o server server.o get_ifi_info_plus.o $(LIBS)
+server.o: server.c server.h constants.h lib/unprtt.h lib/unpifiplus.h
 	$(CC) $(FLAGS) -c server.c $(LIBS)
 utility.o: utility.c utility.h
 	$(CC) $(CFLAGS) -c utility.c
+get_ifi_info_plus.o: lib/get_ifi_info_plus.c
+	$(CC) $(FLAGS) -c lib/get_ifi_info_plus.c $(LIBS)
+prifinfo_plus.o: lib/prifinfo_plus.c
+	$(CC) $(FLAGS) -c lib/prifinfo_plus.c $(LIBS)
 
 clean:
 	echo "Removing object files..."
