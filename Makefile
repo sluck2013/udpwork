@@ -7,12 +7,16 @@ CFLAGS = -g -O2 -std=gnu99
 FLAGS = $(IFLAG) $(CFLAGS)
 
 
-all: client
+all: client server
 
 client: client.o  utility.o
 	$(CC) $(CFLAGS) -o client client.o utility.o $(LIBS)
 client.o: client.c client.h constants.h 
 	$(CC) $(FLAGS) -c client.c $(LIBS)
+server: server.o
+	$(CC) $(CFLAGS) -o server server.o $(LIBS)
+server.o: server.c server.h constants.h
+	$(CC) $(FLAGS) -c server.c $(LIBS)
 utility.o: utility.c utility.h
 	$(CC) $(CFLAGS) -c utility.c
 

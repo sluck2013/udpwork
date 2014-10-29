@@ -1,8 +1,8 @@
 #include <math.h>
 #include <stdlib.h>
 #include "unp.h"
-#include "unpifiplus.h"
-#include "unprtt.h"
+#include "lib/unpifiplus.h"
+#include "lib/unprtt.h"
 
 struct socket_configuration
 {
