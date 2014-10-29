@@ -92,9 +92,27 @@ int main(int argc, char *argv[])
      }
    
 
-   // use select to monitor the sockets it has created for incoming datagrams
-   
+   // use "select " to monitor the sockets it has created for incoming datagrams
+    fd_set rset;
+    int nready;
+    int maxfd;  // maximuim socket file descriptor
 
+     /* to see which file descriptor is the largest */
+      maxfd=socket_config[0].sockfd;      // assume the first one is the largest
+      for(int i=0; i<count; i++)
+      {
+      	if(socket_config[i].sockfd>maxfd)
+      	              {
+      		      maxfd=socket_config[i].sockfd;
+      		}
+      }
+
+     FD_ZERO(&rset);
+      while(1)
+      {
+             nready=Select(maxfd+1,&rset,NULL,NULL,NULL);
+             if()
+      }
 
 
 
@@ -113,6 +131,10 @@ int main(int argc, char *argv[])
 
 
 }
+
+
+
+
 
 
 
