@@ -1,6 +1,7 @@
 #include "unp.h"
 #include "server.h"
 #include "constants.h"
+#include "utility.h"
 #include "lib/unprtt.h"
 #include "lib/unpifiplus.h"
 #include "lib/get_ifi_info_plus.c"
@@ -19,28 +20,30 @@ int main(int argc, char *argv[])
 
          if( config_file==NULL)
          {
-         	 printf("server.in file does not exist!\n");
+         	 errQuit(ERR_OPEN_SERVER_IN);
          }
 
-         char char_server_port[MAXLINE];
+         //char char_server_port[MAXLINE];
           int server_port;
-          int n=fgets(char_server_port, MAXLINE, config_file);
+         // int n=fgets(char_server_port, MAXLINE, config_file);
+             int n=fscanf(config_file, "%d",  &server_port);
           if(n<0)
           {
-          	printf("reading server port failure!\n");
+          	errQuit(ERR_READ_SERVER_PORT);
           }
-          else
-          	server_port=atoi(char_server_port);
+          //else
+          	//server_port=atoi(char_server_port);
 
-         char char_server_win[MAXLINE];
+         //char char_server_win[MAXLINE];
          int server_win;
-         int m=fgets(char_server_win, MAXLINE, config_file);
+         //int m=fgets(char_server_win, MAXLINE, config_file);
+          int m=fscanf(config_file, "%d",  &server_win);
           if(m<0)
           {
-          	printf("reading server window size failure!\n");
+          	errQuit(ERR_READ_SERVER_WIN);
           }
-          else
-          	server_win=atoi(char_server_win);
+          //else
+          //	server_win=atoi(char_server_win);
 
           fclose(config_file);
 
