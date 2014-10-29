@@ -96,10 +96,10 @@ int main(int argc, char *argv[])
     fd_set rset;
     int nready;
     int maxfd;  // maximuim socket file descriptor
-
+    
      /* to see which file descriptor is the largest */
       maxfd=socket_config[0].sockfd;      // assume the first one is the largest
-      for(int i=0; i<count; i++)
+      for( int i=0; i<count; i++)
       {
       	if(socket_config[i].sockfd>maxfd)
       	              {
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
       while(1)
       {
              nready=Select(maxfd+1,&rset,NULL,NULL,NULL);
-             if()
+            // if()
       }
 
 
