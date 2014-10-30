@@ -8,56 +8,9 @@
 struct Config config;
 
 int main(int argc, char **argv) {
-    // read client.in
-    readConfig();
-
-    /* retrieve & print interface info */
-    struct ifi_info *ifi = Get_ifi_info_plus(AF_INET, 1);
-    struct ifi_info *ifiHead = ifi;
-
-    for (; ifi != NULL; ifi = ifi->ifi_next) {
-        struct sockaddr *sa = ifi->ifi_addr;
-        printItem("IP address", Sock_ntop_host(sa, sizeof(*sa)));
-        sa = ifi->ifi_ntmaddr;
-        printItem("Network mask", Sock_ntop_host(sa, sizeof(*sa)));
-        println();       
-    }
-
-    /* set IPClient */
-    struct ifi_info *ifiMatch = NULL;
-    if (isOnSameHost(ifiHead)) {
-        strcpy(config.IPClient, "127.0.0.1");
-        strcpy(config.IPServer, "127.0.0.1");
-    } else if (isLocal(ifiHead, &ifiMatch)) {
-        struct sockaddr *sa = ifiMatch->ifi_addr;
-        strcpy(config.IPClient, Sock_ntop_host(sa, sizeof(*sa)));
-    } else {
-        struct sockaddr *sa = ifiHead->ifi_addr;
-        strcpy(config.IPClient, Sock_ntop_host(sa, sizeof(*sa)));
-    }
-
-    free_ifi_info_plus(ifiHead);
-
-    int sockfd;
-    struct sockaddr_in siMyAddr, siGotAddr;
-    socklen_t slAddrLen = sizeof(siGotAddr);
-    struct in_addr iaGotAddr;
-
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-
-    bzero(&siMyAddr, sizeof(siMyAddr));
-    siMyAddr.sin_family = AF_INET;
-    inet_pton(AF_INET, config.IPClient, &siMyAddr.sin_addr);
-    siMyAddr.sin_port = htons(0);
-    
-    Bind(sockfd, (SA*)&siMyAddr, sizeof(siMyAddr));
-    getsockname(sockfd, (SA*)&siGotAddr, &slAddrLen);
-    printf("%u\n", ntohs(siGotAddr.sin_port));
-    printf("%s\n", Sock_ntop_host((SA*)&siGotAddr, sizeof(siGotAddr)));
-
-    //struct sockaddr *sa = &saMyaddr;
-    //printf("%s\n", Sock_ntop_host(sa, sizeof(*sa)));
-    //printf("%s\n", &saMyaddr);
+    readConfig();      // read client.in
+    setIPClient();     // setIPClient
+    createUDPSocket(); // create UDP socket
 }
 
 /*
@@ -84,6 +37,39 @@ void readConfig() {
             errQuit(ERR_READ_CLIENT_IN);
         }
     }
+}
+
+/* 
+ * retrieve and print interface infomation, set IPClient according
+ * to IPServer
+ */
+void setIPClient() {
+    /* retrieve & print interface info */
+    struct ifi_info *ifi = Get_ifi_info_plus(AF_INET, 1);
+    struct ifi_info *ifiHead = ifi;
+
+    for (; ifi != NULL; ifi = ifi->ifi_next) {
+        struct sockaddr *sa = ifi->ifi_addr;
+        printItem("IP address", Sock_ntop_host(sa, sizeof(*sa)));
+        sa = ifi->ifi_ntmaddr;
+        printItem("Network mask", Sock_ntop_host(sa, sizeof(*sa)));
+        println();       
+    }
+
+    /* set IPClient */
+    struct ifi_info *ifiMatch = NULL;
+    if (isOnSameHost(ifiHead)) {
+        strcpy(config.IPClient, "127.0.0.1");
+        strcpy(config.IPServer, "127.0.0.1");
+    } else if (isLocal(ifiHead, &ifiMatch)) {
+        struct sockaddr *sa = ifiMatch->ifi_addr;
+        strcpy(config.IPClient, Sock_ntop_host(sa, sizeof(*sa)));
+    } else {
+        struct sockaddr *sa = ifiHead->ifi_addr;
+        strcpy(config.IPClient, Sock_ntop_host(sa, sizeof(*sa)));
+    }
+
+    free_ifi_info_plus(ifiHead);
 }
 
 /*
@@ -145,7 +131,7 @@ int isLocal(struct ifi_info *ifiHead, struct ifi_info **ifiMatch) {
  * @return int length of prefix
  * @param uint32_t a, b two IP addresses to be compared
  */
-int getPrefixLen(uint32_t a, uint32_t b) {
+inline int getPrefixLen(uint32_t a, uint32_t b) {
     int iCnt = 0;
     while (a != b) {
         a <<= 1;
@@ -153,4 +139,31 @@ int getPrefixLen(uint32_t a, uint32_t b) {
         ++iCnt;
     }
     return iCnt;
+}
+
+/*
+ * create UDP Socket
+ */
+void createUDPSocket() {
+    int sockfd;
+    struct sockaddr_in siMyAddr, siGotAddr;
+    socklen_t slAddrLen = sizeof(siGotAddr);
+    struct in_addr iaGotAddr;
+
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    bzero(&siMyAddr, sizeof(siMyAddr));
+    siMyAddr.sin_family = AF_INET;
+    inet_pton(AF_INET, config.IPClient, &siMyAddr.sin_addr);
+    siMyAddr.sin_port = htons(0);
+    
+    bind(sockfd, (SA*)&siMyAddr, sizeof(siMyAddr));
+    getsockname(sockfd, (SA*)&siGotAddr, &slAddrLen);
+    printf("%u\n", ntohs(siGotAddr.sin_port));
+    printf("%s\n", Sock_ntop_host((SA*)&siGotAddr, sizeof(siGotAddr)));
+}
+
+
+void printSockInfo(SA* addr, socklen_t len, char* addrName) {
+    //int iPort = ntohs(
 }

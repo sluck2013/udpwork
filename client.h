@@ -20,8 +20,11 @@ struct Config {
 };
 
 void readConfig();
+void setIPClient();
+void createUDPSocket();
 int isOnSameHost(struct ifi_info *ifiHead);
 int isLocal(struct ifi_info* ifiHead, struct ifi_info **ifiMatch);
-int getPrefixLen(uint32_t a, uint32_t b);
+inline int getPrefixLen(uint32_t a, uint32_t b);
+void printSockInfo(SA* addr, socklen_t len, char* addrName);
 
 #endif
