@@ -8,10 +8,12 @@
 struct Config config;
 
 int main(int argc, char **argv) {
+    // read client.in
     readConfig();
 
+    /* retrieve & print interface info */
     struct ifi_info *ifi = Get_ifi_info_plus(AF_INET, 1);
-    struct ifi_info *ifi_head = ifi;
+    struct ifi_info *ifiHead = ifi;
 
     for (; ifi != NULL; ifi = ifi->ifi_next) {
         struct sockaddr *sa = ifi->ifi_addr;
@@ -20,6 +22,14 @@ int main(int argc, char **argv) {
         printItem("Network mask", Sock_ntop_host(sa, sizeof(*sa)));
         println();       
     }
+
+    if (isOnSameHost(ifiHead)) {
+        strcpy(config.clientAddr, "127.0.0.1");
+    } else {
+    }
+    free_ifi_info_plus(ifiHead);
+
+
 }
 
 void readConfig() {
@@ -30,7 +40,7 @@ void readConfig() {
     }
     
     int res[7];
-    res[0] = fscanf(fConfig, "%s", config.addr);
+    res[0] = fscanf(fConfig, "%s", config.serverAddr);
     res[1] = fscanf(fConfig, "%d", &config.port);
     res[2] = fscanf(fConfig, "%s", config.dataFile);
     res[3] = fscanf(fConfig, "%ud", &config.recvWinSize);
@@ -43,5 +53,22 @@ void readConfig() {
             errQuit(ERR_READ_CLIENT_IN);
         }
     }
+}
+
+/*
+ * check if server and client are on the same host
+ * @return 1 if same, 0 if different
+ * @param const struct ifi_info *ifHead pointer to head of
+ *        linked list returned by Get_ifi_info_plus()
+ */
+int isOnSameHost(struct ifi_info *ifiHead) {
+    for (struct ifi_info *ifi = ifiHead; ifi != NULL; ifi = ifi->ifi_next) {
+        struct sockaddr *sa = ifi->ifi_addr;
+        char *clientIP = Sock_ntop_host(sa, sizeof(*sa));
+        if (strcmp(config.serverAddr, clientIP) == 0) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
