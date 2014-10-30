@@ -178,11 +178,75 @@ int main(int argc, char *argv[])
                       {
                         if(socket_cnt!=num)
                              {
-                                /*close all the sockets except the one on which the client request arrived (num)*/
+                                /*close all the sockets except the one on which the client request arrived (num)
+                                leave the "listening" socket open*/
                                  close(socket_config[socket_cnt].sockfd);  
                               }
                       }
+
+                      /*  server child creates a UDP socket(connection socket) 
+                      to handle file transfer to client  */
+
+                      int conn_sockfd;
+                      struct sockaddr_in conn_servaddr;
+                      struct sockaddr_in conn_cliaddr;
+
+                      conn_sockfd=Socket(AF_INET, SOCK_DGRAM, 0);
+
+                      bzero(&conn_servaddr, sizeof(conn_servaddr));
+                      conn_servaddr.sin_family=AF_INET;
+                      conn_servaddr.sin_port=htons(0);
+                      int k=inet_pton(AF_INET, IPserver, &conn_servaddr.sin_addr);
+                      if(k<=0)
+                      {
+                      	//printf("Inet_pton error for IPserver\n");
+                      	errQuit(ERR_INET_PTON_SERV);
+                      }
+
+                      Bind(conn_sockfd, (SA *) &conn_servaddr, sizeof(conn_servaddr));
+
+
+                      // use getsockname 
+                      socklen_t len_conn_servaddr= sizeof(conn_servaddr);
+                       int n= getsockname(conn_sockfd, (SA* )& conn_servaddr, &len_conn_servaddr);
+                       if(n<0)
+                       {
+                       	errQuit(ERR_GETSOCKNAME);
+                       }
+
+
+
+
+
+
+                     
+
+
+                      bzero(&conn_cliaddr, sizeof(conn_cliaddr));
+                      conn_cliaddr.sin_family=AF_INET;
+                      conn_cliaddr.sin_port=cli_port_num;
+                      int j=inet_pton(AF_INET, IPclient, &conn_cliaddr.sin_addr);
+                      if(j<=0)
+                      {
+                      	//printf("Inet_pton error for IPclient\n");
+                      	errQuit(ERR_INET_PTON_CLI);
+                      }
+
+                      Connect(conn_sockfd, (SA *)&conn_cliaddr, sizeof(conn_cliaddr));
+
+
+
+
+
+
+
+
+
+
+
+
                     
+
 
 
                 }

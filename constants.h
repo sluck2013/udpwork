@@ -9,6 +9,9 @@
 #define ERR_READ_SERVER_WIN "reading server window size failure!"
 #define ERR_READ_DATA_FROM_CLI "reading incoming datagram error!" 
 #define ERR_FORK_FAIL "fork failed!"
+#define ERR_INET_PTON_SERV "Inet_pton error for IPserver"
+#define ERR_INET_PTON_CLI "Inet_pton error for IPclient"
+#define ERR_GETSOCKNAME "getsockname error!"
 
 
 /******** OTHER CONSTS ********/
