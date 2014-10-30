@@ -28,6 +28,6 @@ clean:
 	echo "Removing object files..."
 	rm -f *.o
 	echo "Removing executable files..."
-	rm -f client
+	rm -f client server
 	echo "Removing temp files..."
 	rm -f *~ *.swp
