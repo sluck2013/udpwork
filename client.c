@@ -23,15 +23,22 @@ int main(int argc, char **argv) {
         println();       
     }
 
+    struct ifi_info *ifiMatch = NULL;
     if (isOnSameHost(ifiHead)) {
-        strcpy(config.clientAddr, "127.0.0.1");
-    } else {
+        strcpy(config.IPClient, "127.0.0.1");
+        strcpy(config.IPServer, "127.0.0.1");
+    } else if (isLocal(ifiHead, &ifiMatch)) {
+        struct sockaddr *sa = ifiMatch->ifi_addr;
+        strcpy(config.IPClient, Sock_ntop_host(sa, sizeof(*sa)));
     }
     free_ifi_info_plus(ifiHead);
 
 
 }
 
+/*
+ * read information from client.in
+ */
 void readConfig() {
     FILE* fConfig = NULL;
     
@@ -72,3 +79,37 @@ int isOnSameHost(struct ifi_info *ifiHead) {
     return 0;
 }
 
+int isLocal(struct ifi_info *ifiHead, struct ifi_info **ifiMatch) {
+    struct in_addr clientAddr, serverAddr, maskAddr;
+    inet_pton(AF_INET, config.serverAddr, &serverAddr);
+    int iIsLocal = 0;
+    int iMaxPrefixLen = 0;
+
+    for (struct ifi_info *ifi = ifiHead; ifi != NULL; ifi = ifi->ifi_next) {
+        clientAddr = ((struct sockaddr_in*)ifi->ifi_addr)->sin_addr;
+        maskAddr = ((struct sockaddr_in*)ifi->ifi_ntmaddr)->sin_addr;
+        uint32_t r1 = serverAddr.s_addr & maskAddr.s_addr;
+        uint32_t r2 = clientAddr.s_addr & maskAddr.s_addr;
+        if (r1 == r2) {
+            int iPrefixLen = getPrefixLen(serverAddr.s_addr, clientAddr.s_addr);
+            if (iPrefixLen <= iMaxPrefixLen) {
+                continue;
+            }
+            iMaxPrefixLen = iPrefixLen;
+            iIsLocal = 1;
+            (*ifiMatch) = ifi;
+        }
+    }
+
+    return iIsLocal;
+}
+
+int getPrefixLen(uint32_t a, uint32_t b) {
+    int iCnt = 0;
+    while (a != b) {
+        a <<= 1;
+        b <<= 1;
+        ++iCnt;
+    }
+    return iCnt;
+}
