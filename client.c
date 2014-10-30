@@ -30,6 +30,7 @@ int main(int argc, char **argv) {
     } else if (isLocal(ifiHead, &ifiMatch)) {
         struct sockaddr *sa = ifiMatch->ifi_addr;
         strcpy(config.IPClient, Sock_ntop_host(sa, sizeof(*sa)));
+    } else {
     }
     free_ifi_info_plus(ifiHead);
 
