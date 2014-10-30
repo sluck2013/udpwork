@@ -15,6 +15,7 @@ struct in_addr bitwise_and(struct in_addr ip, struct in_addr mask);
 
 int main(int argc, char *argv[]) 
 {
+       int socket_cnt;
        FILE * config_file;
         config_file=fopen("server.in", "r");
 
@@ -102,20 +103,95 @@ int main(int argc, char *argv[])
     
      /* to see which file descriptor is the largest */
       maxfd=socket_config[0].sockfd;      // assume the first one is the largest
-      for( int i=0; i<count; i++)
+      for( socket_cnt=0; socket_cnt<count; socket_cnt++)
       {
-      	if(socket_config[i].sockfd>maxfd)
-      	              {
-      		      maxfd=socket_config[i].sockfd;
+      	if(socket_config[socket_cnt].sockfd>maxfd)
+      	      {
+      		      maxfd=socket_config[socket_cnt].sockfd;
       		}
       }
+
 
      FD_ZERO(&rset);
       while(1)
       {
-             nready=Select(maxfd+1,&rset,NULL,NULL,NULL);
+           int  num;
+           for(num=0; num<count; num++)
+           {
+                FD_SET(socket_config[num].sockfd, &rset);
+           }
 
-            // if()
+
+             nready=Select(maxfd+1,&rset,NULL,NULL,NULL);
+             if(nready<0)
+             {
+                   if(errno==EINTR)
+                   {
+                         continue;
+                   }
+                   else
+                   {
+                      exit(1);
+                   }
+             }
+
+             //check each interface to see if it can read and find the one that can read (num)
+            for(num=0; num<count; num++)
+            {
+              if(FD_ISSET(socket_config[num].sockfd, &rset))
+              {
+                   struct sockaddr_in   cliaddr;
+                   int len_cliaddr= sizeof( cliaddr );
+
+                   char cli_port[MAXLINE];
+                   int n=Recvfrom(socket_config[num].sockfd, cli_port, MAXLINE, 0, (struct  sockaddr *) &cliaddr, &len_cliaddr );
+
+                   if(n<0)
+                   {
+                    errQuit(ERR_READ_DATA_FROM_CLI);
+                    //printf("reading incoming datagram error!\n");
+                   }
+
+                   char IPclient[MAXLINE], IPserver[MAXLINE]; 
+                   int cli_port_num;
+
+                   cli_port_num=atoi(cli_port);
+                   sprintf(IPserver, "%s", inet_ntoa(socket_config[num].ip));
+                   sprintf(IPclient, "%s", inet_ntoa(cliaddr.sin_addr));
+
+
+
+                /*server fork off a child process to handle the client*/
+                
+                pid_t pid;
+                pid=fork();
+                
+                if(pid<0)
+                {
+                  errQuit(ERR_FORK_FAIL);
+                  //printf("fork failed!\n");
+                }
+
+                if(pid==0)
+                {
+                      for(socket_cnt=0; socket_cnt<count; socket_cnt++)
+                      {
+                        if(socket_cnt!=num)
+                             {
+                                /*close all the sockets except the one on which the client request arrived (num)*/
+                                 close(socket_config[socket_cnt].sockfd);  
+                              }
+                      }
+                    
+
+
+                }
+
+
+
+              }
+            }
+   
 
       }
 
@@ -145,6 +221,7 @@ int main(int argc, char *argv[])
 
 struct in_addr bitwise_and(struct in_addr ip, struct in_addr mask)
 {
+      in_addr_t subnet_addr;
 	struct in_addr subnet;
 	subnet.s_addr=ip.s_addr & mask.s_addr;
 	return subnet;

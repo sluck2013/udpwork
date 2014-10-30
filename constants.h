@@ -7,6 +7,8 @@
 #define ERR_OPEN_SERVER_IN "server.in file does not exist!"
 #define ERR_READ_SERVER_PORT "reading server port failure!"
 #define ERR_READ_SERVER_WIN "reading server window size failure!"
+#define ERR_READ_DATA_FROM_CLI "reading incoming datagram error!" 
+#define ERR_FORK_FAIL "fork failed!"
 
 
 /******** OTHER CONSTS ********/
