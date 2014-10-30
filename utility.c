@@ -11,3 +11,10 @@ void errQuit(char *errMsg) {
     exit(0);
 }
 
+void printItem(const char* key, const char* value) {
+    printf("%s: %s\n", key, value);
+}
+
+void println() {
+    printf("\n");
+}
