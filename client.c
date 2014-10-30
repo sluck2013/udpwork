@@ -8,12 +8,22 @@
 struct Config config;
 
 int main(int argc, char **argv) {
-   readConfig(); 
+    readConfig();
+
+    struct ifi_info *ifi = Get_ifi_info_plus(AF_INET, 1);
+    struct ifi_info *ifi_head = ifi;
+
+    for (; ifi != NULL; ifi = ifi->ifi_next) {
+        struct sockaddr *sa = ifi->ifi_addr;
+        printItem("IP address", Sock_ntop_host(sa, sizeof(*sa)));
+        sa = ifi->ifi_ntmaddr;
+        printItem("Network mask", Sock_ntop_host(sa, sizeof(*sa)));
+        println();       
+    }
 }
 
 void readConfig() {
     FILE* fConfig = NULL;
-    char readBuf[MAXCHAR];
     
     if ((fConfig = fopen("client.in", "r")) == NULL) {
         errQuit(ERR_OPEN_CLIENT_IN);
