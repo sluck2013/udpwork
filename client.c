@@ -38,7 +38,17 @@ int main(int argc, char **argv) {
 
     free_ifi_info_plus(ifiHead);
 
+    int sockfd;
+    struct sockaddr_in siMyAddr;
+
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    bzero(&siMyAddr, sizeof(siMyAddr));
+    siMyAddr.sin_family = AF_INET;
+    inet_pton(AF_INET, config.IPClient, &siMyAddr.sin_addr);
+    siMyAddr.sin_port = htons(0);
     
+    Bind(sockfd, (SA*)&siMyAddr, sizeof(siMyAddr));
 }
 
 /*
