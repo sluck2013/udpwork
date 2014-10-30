@@ -39,7 +39,9 @@ int main(int argc, char **argv) {
     free_ifi_info_plus(ifiHead);
 
     int sockfd;
-    struct sockaddr_in siMyAddr;
+    struct sockaddr_in siMyAddr, siGotAddr;
+    socklen_t slAddrLen = sizeof(siGotAddr);
+    struct in_addr iaGotAddr;
 
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -49,6 +51,13 @@ int main(int argc, char **argv) {
     siMyAddr.sin_port = htons(0);
     
     Bind(sockfd, (SA*)&siMyAddr, sizeof(siMyAddr));
+    getsockname(sockfd, (SA*)&siGotAddr, &slAddrLen);
+    printf("%u\n", ntohs(siGotAddr.sin_port));
+    printf("%s\n", Sock_ntop_host((SA*)&siGotAddr, sizeof(siGotAddr)));
+
+    //struct sockaddr *sa = &saMyaddr;
+    //printf("%s\n", Sock_ntop_host(sa, sizeof(*sa)));
+    //printf("%s\n", &saMyaddr);
 }
 
 /*
