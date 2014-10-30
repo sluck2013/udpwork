@@ -23,6 +23,7 @@ int main(int argc, char **argv) {
         println();       
     }
 
+    /* set IPClient */
     struct ifi_info *ifiMatch = NULL;
     if (isOnSameHost(ifiHead)) {
         strcpy(config.IPClient, "127.0.0.1");
@@ -31,7 +32,10 @@ int main(int argc, char **argv) {
         struct sockaddr *sa = ifiMatch->ifi_addr;
         strcpy(config.IPClient, Sock_ntop_host(sa, sizeof(*sa)));
     } else {
+        struct sockaddr *sa = ifiHead->ifi_addr;
+        strcpy(config.IPClient, Sock_ntop_host(sa, sizeof(*sa)));
     }
+
     free_ifi_info_plus(ifiHead);
 
 
@@ -65,7 +69,7 @@ void readConfig() {
 
 /*
  * check if server and client are on the same host
- * @return 1 if same, 0 if different
+ * @return int 1 if same, 0 if different
  * @param const struct ifi_info *ifHead pointer to head of
  *        linked list returned by Get_ifi_info_plus()
  */
@@ -80,6 +84,18 @@ int isOnSameHost(struct ifi_info *ifiHead) {
     return 0;
 }
 
+/*
+ * check if server and client are local to each other.
+ * If local, return ifi pointer, to where IP address is local
+ * to IPServer, using "longest prefix matching" strategy.
+ * @return int 1 if is local, 0 otherwise
+ * @param struct ifi_info *ifiHead pointer to head of linked
+ *        list returned by Get_ifi_info_plus()
+ * @param struct ifi_info **ifiMatch pointer to pointer of
+ *        ifi_info struct, the selected pointer to ifi_info
+ *        struct whose IP is local to IPServer will be stored
+ *        in *ifiMatch
+ */
 int isLocal(struct ifi_info *ifiHead, struct ifi_info **ifiMatch) {
     struct in_addr clientAddr, serverAddr, maskAddr;
     inet_pton(AF_INET, config.serverAddr, &serverAddr);
@@ -105,6 +121,11 @@ int isLocal(struct ifi_info *ifiHead, struct ifi_info **ifiMatch) {
     return iIsLocal;
 }
 
+/* 
+ * compute length of prefix of two IP addresses.
+ * @return int length of prefix
+ * @param uint32_t a, b two IP addresses to be compared
+ */
 int getPrefixLen(uint32_t a, uint32_t b) {
     int iCnt = 0;
     while (a != b) {
