@@ -88,9 +88,9 @@ int main(int argc, char *argv[])
            //subnet address
            socket_config[count].subnet=bitwise_and(socket_config[count].ip, socket_config[count].mask); 
 
-         printf("  IP address is : %s\n", Sock_ntop((SA  *) sa, sizeof(* sa)));
+         printf("IP address is : %s\n", Sock_ntop((SA  *) sa, sizeof(* sa)));
          printf("Network mask is : %s\n", Sock_ntop((SA*) sinptr, sizeof(*sinptr)));
-         printf(" Subnet address is: %s\n", inet_ntoa(socket_config[count].subnet));
+         printf("Subnet address is: %s\n", inet_ntoa(socket_config[count].subnet));
 
          count+=1;
      }
@@ -184,6 +184,49 @@ int main(int argc, char *argv[])
                               }
                       }
 
+                 //check if client host is local
+                                 /* Determine if the client is on the same local network */
+                    int isLocal;
+	for(int k = 0; k < count; k++)
+	{
+	struct sockaddr_in *intaddr = (struct sockaddr_in *) if_list[k].ifi_addr;
+	uint32_t uintaddr = intaddr->sin_addr.s_addr; 
+	struct sockaddr_in *intmask = (struct sockaddr_in *) if_list[k].ifi_ntmaddr;
+	uint32_t uintmask = intmask->sin_addr.s_addr; 
+	
+	uint32_t uintsubnet_addr = uintaddr & uintmask;
+	uint32_t uintserver_addr = (cliaddr->sin_addr.s_addr) & uintmask;
+	//if the XOR is = 0, then perfect match, and therefore local
+	if( (uintsubnet_addr ^ uintserver_addr) == 0)
+	   {
+	      isLocal = 1;
+	     break;
+	    }
+	}
+
+
+
+	/* if the client is on the local net, then use the SO_DONTROUTE socket option */
+	if(isLocal == 1)
+	{
+	printf("*client host is local\n");
+	if(setsockopt(if_list[num].fd, SOL_SOCKET, SO_DONTROUTE, &on, sizeof(on)) < 0)
+	   {
+	printf("setting socket error \n");
+	exit(1);
+	    }
+	}
+	else
+	{
+	printf("*client host is not local\n");
+	}
+
+
+
+
+
+
+
                       /*  server child creates a UDP socket(connection socket) 
                       to handle file transfer to client  */
 
@@ -214,14 +257,16 @@ int main(int argc, char *argv[])
                        	errQuit(ERR_GETSOCKNAME);
                        }
 
+                       // get the ephemeral port number 
+                
+                       char  serv_ephe_port[MAXLINE];
+                       sprintf(serv_ephe_port, "%i", ntohs(conn_servaddr.sin_port));
+                       printf("ephemeral port number is: %s\n",  serv_ephe_port);
 
+                       Write(conn_sockfd, serv_ephe_port, MAXLINE);
+                       close(socket_config[num].sockfd);
 
-
-
-
-                     
-
-
+                       
                       bzero(&conn_cliaddr, sizeof(conn_cliaddr));
                       conn_cliaddr.sin_family=AF_INET;
                       conn_cliaddr.sin_port=cli_port_num;
@@ -233,20 +278,6 @@ int main(int argc, char *argv[])
                       }
 
                       Connect(conn_sockfd, (SA *)&conn_cliaddr, sizeof(conn_cliaddr));
-
-
-
-
-
-
-
-
-
-
-
-
-                    
-
 
 
                 }
