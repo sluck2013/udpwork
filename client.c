@@ -177,9 +177,19 @@ void createUDPSocket() {
     Inet_pton(AF_INET, config.IPServer, &siServerAddr.sin_addr);
     siServerAddr.sin_port = htons(config.port);
     Connect(sockfd, (SA*)&siServerAddr, sizeof(siServerAddr));
-    printInfo("Connected to server");
+    printInfo("Connected to server"); // TODO: add addr.
 
     Getpeername(sockfd, (SA*)&siForeignAddr, &slForeignLen);
     printSockInfo(&siForeignAddr, "Foreign");
     Write(sockfd, config.dataFile, strlen(config.dataFile));
+
+    // get server's "connection" socket port
+    char pcPort[MAX_PORT_LEN];
+    Read(sockfd, pcPort, MAX_PORT_LEN);
+    config.port = atoi(pcPort);
+
+    //reconnect to "connection" socket
+    siServerAddr.sin_port = htons(config.port);
+    Connect(sockfd, (SA*)&siServerAddr, sizeof(siServerAddr));
+    printInfo("Reconnected to server"); // TODO: add addr.
 }
