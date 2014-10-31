@@ -189,9 +189,9 @@ int main(int argc, char *argv[])
                     int isLocal;
 	for(int k = 0; k < count; k++)
 	{
-	struct sockaddr_in *intaddr = (struct sockaddr_in *) if_list[k].ifi_addr;
+	struct sockaddr_in *intaddr = (struct sockaddr_in *)socket_config[k].ip;
 	uint32_t uintaddr = intaddr->sin_addr.s_addr; 
-	struct sockaddr_in *intmask = (struct sockaddr_in *) if_list[k].ifi_ntmaddr;
+	struct sockaddr_in *intmask = (struct sockaddr_in *) socket_config[k].mask;
 	uint32_t uintmask = intmask->sin_addr.s_addr; 
 	
 	uint32_t uintsubnet_addr = uintaddr & uintmask;
@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
 	if(isLocal == 1)
 	{
 	printf("*client host is local\n");
-	if(setsockopt(if_list[num].fd, SOL_SOCKET, SO_DONTROUTE, &on, sizeof(on)) < 0)
+	if(setsockopt(socket_config[num].sockfd, SOL_SOCKET, SO_DONTROUTE, &on, sizeof(on)) < 0)
 	   {
 	printf("setting socket error \n");
 	exit(1);
@@ -289,21 +289,6 @@ int main(int argc, char *argv[])
    
 
       }
-
-
-
-
-    
-
-
-
-    
-
-
-
-
-
-         
 
 
 }
