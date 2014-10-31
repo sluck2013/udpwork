@@ -166,18 +166,18 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
         printf("send ephemeral port number %i to client \n", serv_ephe_port);
     }             
 
-                         // transfer file
-                    Read(conn_sockfd, request_file, MAXLINE);
-                    printf("file name: %s\n", request_file);
+    // transfer file
+    Read(conn_sockfd, request_file, MAXLINE);
+    printf("file name: %s\n", request_file);
 
-                    FILE * prefiledp;
-                    prefiledp=fopen(request_file, "r");
+    FILE * prefiledp;
+    prefiledp=fopen(request_file, "r");
 
-                    if(prefiledp==NULL)
-                    {
-                        printf("cannot open file!\n");
-                        exit(1);
-                    }       
+    if(prefiledp==NULL)
+    {
+        printf("cannot open file!\n");
+        exit(1);
+    }       
 
 }
 
