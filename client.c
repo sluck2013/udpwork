@@ -158,28 +158,28 @@ void createUDPSocket() {
     struct in_addr iaLocalAddr;
 
 
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
     printInfo("UDP socket created");
 
     bzero(&siClientAddr, sizeof(siClientAddr));
     siClientAddr.sin_family = AF_INET;
-    inet_pton(AF_INET, config.IPClient, &siClientAddr.sin_addr);
+    Inet_pton(AF_INET, config.IPClient, &siClientAddr.sin_addr);
     siClientAddr.sin_port = htons(0);
     
     bind(sockfd, (SA*)&siClientAddr, sizeof(siClientAddr));
     printInfo("Port binded");
 
-    getsockname(sockfd, (SA*)&siLocalAddr, &slLocalLen);
+    Getsockname(sockfd, (SA*)&siLocalAddr, &slLocalLen);
     printSockInfo(&siLocalAddr, "Local");
 
     bzero(&siServerAddr, sizeof(siServerAddr));
     siServerAddr.sin_family = AF_INET;
-    inet_pton(AF_INET, config.IPServer, &siServerAddr.sin_addr);
+    Inet_pton(AF_INET, config.IPServer, &siServerAddr.sin_addr);
     siServerAddr.sin_port = htons(config.port);
-    connect(sockfd, (SA*)&siServerAddr, sizeof(siServerAddr));
+    Connect(sockfd, (SA*)&siServerAddr, sizeof(siServerAddr));
     printInfo("Connected to server");
 
-    getpeername(sockfd, (SA*)&siForeignAddr, &slForeignLen);
+    Getpeername(sockfd, (SA*)&siForeignAddr, &slForeignLen);
     printSockInfo(&siForeignAddr, "Foreign");
     Write(sockfd, config.dataFile, strlen(config.dataFile));
 }
