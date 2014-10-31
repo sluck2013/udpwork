@@ -163,10 +163,6 @@ int main(int argc, char *argv[])
                      else
                      {
                         printf("send ephemeral port number %i to client \n", serv_ephe_port);
-
-
-
-                        //   transfer file now
                      }                    
                 }
             }
