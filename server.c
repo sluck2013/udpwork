@@ -29,18 +29,15 @@ int main(int argc, char *argv[])
         errQuit(ERR_READ_SERVER_PORT);
     }
 
-    int m = fscanf(config_file, "%d", &server_config.server_win);
+    int m = fscanf(config_file, "%d", &server_config.server_win_size);
     if(m < 0) {
         errQuit(ERR_READ_SERVER_WIN);
     }
 
     fclose(config_file);
 
-    server_config.server_port = server_port;
-    printf("server port is : %d\n", server_port);
-
-    server_config.server_win_size = server_win;
-    printf("window size is: %d\n", server_win);
+    printf("server port is : %d\n", server_config.server_port);
+    printf("window size is: %d\n", server_config.server_win_size);
 
     println();
 
@@ -64,7 +61,7 @@ int main(int argc, char *argv[])
         //sockfd
         sa = (struct sockaddr_in *) ifi->ifi_addr;
         sa->sin_family = AF_INET;
-        sa->sin_port = htons(server_port);
+        sa->sin_port = htons(server_config.server_port);
         Bind(socket_config[count].sockfd, (SA*)sa, sizeof(*sa));
 
         //ip address
