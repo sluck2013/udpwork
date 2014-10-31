@@ -44,24 +44,23 @@ int main(int argc, char *argv[])
 
     FD_ZERO(&rset);
     while (1) {
-        int num;
-        for(num = 0; num < iSockNum; ++num) {
+        for(int num = 0; num < iSockNum; ++num) {
             FD_SET(socket_config[num].sockfd, &rset);
         }
 
 
-        nready = Select(maxfd + 1, &rset, NULL, NULL, NULL);
+        nready = select(maxfd + 1, &rset, NULL, NULL, NULL);
         if (nready < 0) {
             if (errno == EINTR) {
                 continue;
             } else {
-                exit(1);
+                errQuit("Select error");
             }
         }
 
         //check each interface to see if it can read and 
         //find the one that can read (num)
-        for(num = 0; num < iSockNum; ++num) {
+        for(int num = 0; num < iSockNum; ++num) {
             if(FD_ISSET(socket_config[num].sockfd, &rset)) {
                 struct sockaddr_in cliaddr;
                 int len_cliaddr = sizeof(cliaddr);
@@ -73,12 +72,14 @@ int main(int argc, char *argv[])
                     errQuit(ERR_READ_DATA_FROM_CLI);
                 }
 
-                char IPclient[MAXLINE], IPserver[MAXLINE]; 
+                //char IPclient[MAXCHAR], IPserver[MAXCHAR]; 
                 int cli_port_num;
 
                 cli_port_num = atoi(cli_port);
-                sprintf(IPserver, "%s", inet_ntoa(socket_config[num].ip));
-                sprintf(IPclient, "%s", inet_ntoa(cliaddr.sin_addr));
+                //sprintf(IPserver, "%s", inet_ntoa(socket_config[num].ip));
+                //sprintf(IPclient, "%s", inet_ntoa(cliaddr.sin_addr));
+                char *IPclient = Sock_ntop_host((SA*)&cliaddr.sin_addr, sizeof(cliaddr.sin_addr));
+                char *IPserver = Sock_ntop_host((SA*)&socket_config[num].ip, sizeof(socket_config[num].ip));
 
                 /*server fork off a child process to handle the client*/
                 pid_t pid;
@@ -86,9 +87,7 @@ int main(int argc, char *argv[])
 
                 if (pid < 0) {
                     errQuit(ERR_FORK_FAIL);
-                }
-
-                if (pid == 0) {
+                } else if (pid == 0) {
                     for (socket_cnt = 0; socket_cnt<iSockNum; ++socket_cnt) {
                         if(socket_cnt != num) {
                             /*close all the sockets except the one on which the client request arrived (num)
@@ -98,7 +97,7 @@ int main(int argc, char *argv[])
                     }
 
                     /* if the client is on the local net, then use the SO_DONTROUTE socket option */
-                    int on = 1;
+                    const int on = 1;
                     if(isLocal(&cliaddr)) {
                         printf("*client host is local\n");
                         if(setsockopt(socket_config[num].sockfd, SOL_SOCKET, SO_DONTROUTE, &on, sizeof(on)) < 0) {
