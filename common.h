@@ -1,5 +1,5 @@
 #ifndef COMMON_H
-#define CoMMON_H
+#define COMMON_H
 
 struct ack {
 };

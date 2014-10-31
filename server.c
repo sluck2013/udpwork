@@ -12,8 +12,10 @@
 struct server_configuration server_config;
 struct in_addr bitwise_and(struct in_addr ip, struct in_addr mask);
 struct socket_configuration socket_config[MAXSOCKET];
+int iSockNum;
 void readConfig();
-int bindSockets();
+void bindSockets();
+int isLocal(struct sockaddr_in *clientAddr);
 
 int main(int argc, char *argv[]) 
 {
@@ -23,7 +25,7 @@ int main(int argc, char *argv[])
     readConfig();
 
     /* binding each IP address to a distinct UDP socket */
-    int iSockNum = bindSockets();
+    bindSockets();
 
     // use "select " to monitor the sockets it has created
     // for incoming datagrams
@@ -41,7 +43,7 @@ int main(int argc, char *argv[])
 
 
     FD_ZERO(&rset);
-    while(1) {
+    while (1) {
         int num;
         for(num = 0; num < iSockNum; ++num) {
             FD_SET(socket_config[num].sockfd, &rset);
@@ -50,7 +52,7 @@ int main(int argc, char *argv[])
 
         nready = Select(maxfd + 1, &rset, NULL, NULL, NULL);
         if (nready < 0) {
-            if(errno == EINTR) {
+            if (errno == EINTR) {
                 continue;
             } else {
                 exit(1);
@@ -95,51 +97,17 @@ int main(int argc, char *argv[])
                         }
                     }
 
-                    //check if client host is local
-                    /* Determine if the client is on the same local network */
-                    int isLocal;
-                    for(int k = 0; k < iSockNum; k++)
-                    {
-
-                        uint32_t uServerAddr = socket_config[k].ip.s_addr;
-                        uint32_t uMaskAddr = socket_config[k].mask.s_addr;
-                        uint32_t uClientAddr = cliaddr.sin_addr.s_addr;
-
-                        uint32_t uServerSub = uServerAddr & uMaskAddr;
-                        uint32_t uClientSub = uClientAddr & uMaskAddr;
-
-
-                        //if the XOR is = 0, then perfect match, and therefore local
-                        if(uServerSub == uClientSub)
-                        {
-                            isLocal = 1;
-                            break;
-                        }
-                    }
-
-
-
                     /* if the client is on the local net, then use the SO_DONTROUTE socket option */
                     int on = 1;
-                    if(isLocal == 1)
-                    {
+                    if(isLocal(&cliaddr)) {
                         printf("*client host is local\n");
-                        if(setsockopt(socket_config[num].sockfd, SOL_SOCKET, SO_DONTROUTE, &on, sizeof(on)) < 0)
-                        {
+                        if(setsockopt(socket_config[num].sockfd, SOL_SOCKET, SO_DONTROUTE, &on, sizeof(on)) < 0) {
                             printf("setting socket error \n");
                             exit(1);
                         }
-                    }
-                    else
-                    {
+                    } else {
                         printf("*client host is not local\n");
                     }
-
-
-
-
-
-
 
                     /*  server child creates a UDP socket(connection socket) 
                         to handle file transfer to client  */
@@ -193,22 +161,10 @@ int main(int argc, char *argv[])
 
                     Connect(conn_sockfd, (SA *)&conn_cliaddr, sizeof(conn_cliaddr));
 
-
                 }
-
-
-
             }
         }
-
-
     }
-
-
-
-
-
-
 }
 
 
@@ -236,7 +192,7 @@ void readConfig() {
     println();
 }
 
-int bindSockets() {
+void bindSockets() {
     int count = 0;
     const int on = 1;
 
@@ -275,10 +231,7 @@ int bindSockets() {
 
         ++count;
     }
-    return count;
 }
-
-
 
 struct in_addr bitwise_and(struct in_addr ip, struct in_addr mask)
 {
@@ -286,4 +239,20 @@ struct in_addr bitwise_and(struct in_addr ip, struct in_addr mask)
     struct in_addr subnet;
     subnet.s_addr=ip.s_addr & mask.s_addr;
     return subnet;
+}
+
+int isLocal(struct sockaddr_in *clientAddr) {
+    for(int k = 0; k < iSockNum; k++) {
+        uint32_t uServerAddr = socket_config[k].ip.s_addr;
+        uint32_t uMaskAddr = socket_config[k].mask.s_addr;
+        uint32_t uClientAddr = clientAddr->sin_addr.s_addr;
+
+        uint32_t uServerSub = uServerAddr & uMaskAddr;
+        uint32_t uClientSub = uClientAddr & uMaskAddr;
+
+        if(uServerSub == uClientSub) {
+            return 1;
+        }
+    }
+    return 0;
 }
