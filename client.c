@@ -150,31 +150,50 @@ inline int getPrefixLen(uint32_t a, uint32_t b) {
  */
 void createUDPSocket() {
     int sockfd;
-    //siInitAddr - designated by IPClient
+    //siClientAddr - designated by IPClient
+    //siServerADdr - designated by IPServer
     //siLocalAddr - returned by getsockname()
-    struct sockaddr_in siInitAddr, siLocalAddr;
-    socklen_t slAddrLen = sizeof(siLocalAddr);
+    //siForeignAddr - returned by getpeername()
+    struct sockaddr_in siClientAddr, siServerAddr, siLocalAddr, siForeignAddr;
+    socklen_t slLocalLen = sizeof(siLocalAddr);
+    socklen_t slForeignLen = sizeof(siForeignAddr);
     struct in_addr iaLocalAddr;
 
 
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     printInfo("UDP socket created");
 
-    bzero(&siInitAddr, sizeof(siInitAddr));
-    siInitAddr.sin_family = AF_INET;
-    inet_pton(AF_INET, config.IPClient, &siInitAddr.sin_addr);
-    siInitAddr.sin_port = htons(0);
+    bzero(&siClientAddr, sizeof(siClientAddr));
+    siClientAddr.sin_family = AF_INET;
+    inet_pton(AF_INET, config.IPClient, &siClientAddr.sin_addr);
+    siClientAddr.sin_port = htons(0);
     
-    bind(sockfd, (SA*)&siInitAddr, sizeof(siInitAddr));
+    bind(sockfd, (SA*)&siClientAddr, sizeof(siClientAddr));
     printInfo("Port binded");
 
-    getsockname(sockfd, (SA*)&siLocalAddr, &slAddrLen);
+    getsockname(sockfd, (SA*)&siLocalAddr, &slLocalLen);
     printSockInfo(&siLocalAddr, "Local");
-    //printf("%u\n", ntohs(siGotAddr.sin_port));
-    //printf("%s\n", Sock_ntop_host((SA*)&siGotAddr, sizeof(siGotAddr)));
+
+    bzero(&siServerAddr, sizeof(siServerAddr));
+    siServerAddr.sin_family = AF_INET;
+    inet_pton(AF_INET, config.IPServer, &siServerAddr.sin_addr);
+    siServerAddr.sin_port = htons(config.port);
+    connect(sockfd, (SA*)&siServerAddr, sizeof(siServerAddr));
+    printInfo("Connected to server");
+
+    getpeername(sockfd, (SA*)&siForeignAddr, &slForeignLen);
+    printSockInfo(&siForeignAddr, "Foreign");
+    Write(sockfd, config.dataFile, strlen(config.dataFile));
 }
 
-
+/*
+ * Print IP address and port number from sockaddr_in struct.
+ * Used to print info returned by getsockname and getpeername.
+ * @param struct sockaddr_in* addr pointer to sockaddr_in variable
+ *        containing IP server and port number
+ * @param char* addrName string which should be either "Local"
+ *        or "Foreign"
+ */
 void printSockInfo(struct sockaddr_in* addr, char* addrName) {
     unsigned int uiPort = ntohs(addr->sin_port);
     char* pcIP = Sock_ntop_host((SA*)addr, sizeof(*addr));
