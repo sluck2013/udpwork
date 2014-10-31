@@ -38,6 +38,7 @@ void readConfig() {
         }
     }
     strcpy(config.IPServer, config.serverAddr);
+    fclose(fConfig);
 }
 
 /* 
