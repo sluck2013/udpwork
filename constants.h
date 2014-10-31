@@ -16,4 +16,6 @@
 
 /******** OTHER CONSTS ********/
 #define MAXCHAR (256)
+#define MAXSOCKET (100)
+
 #endif

@@ -51,10 +51,7 @@ void setIPClient() {
     struct ifi_info *ifiHead = ifi;
 
     for (; ifi != NULL; ifi = ifi->ifi_next) {
-        struct sockaddr *sa = ifi->ifi_addr;
-        printItem("IP address", Sock_ntop_host(sa, sizeof(*sa)));
-        sa = ifi->ifi_ntmaddr;
-        printItem("Network mask", Sock_ntop_host(sa, sizeof(*sa)));
+        printIfiInfo(ifi);
         println();       
     }
 

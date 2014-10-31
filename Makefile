@@ -17,8 +17,8 @@ server: server.o utility.o
 	$(CC) $(CFLAGS) -o server server.o utility.o $(LIBS)
 server.o: server.c server.h constants.h lib/unprtt.h lib/unpifiplus.h get_ifi_info_plus.o
 	$(CC) $(FLAGS) -c server.c get_ifi_info_plus.o $(LIBS)
-utility.o: utility.c utility.h
-	$(CC) $(CFLAGS) -c utility.c
+utility.o: utility.c utility.h lib/unpifiplus.h
+	$(CC) $(FLAGS) -c utility.c $(LIBS)
 get_ifi_info_plus.o: lib/get_ifi_info_plus.c
 	$(CC) $(FLAGS) -c lib/get_ifi_info_plus.c $(LIBS)
 prifinfo_plus.o: lib/prifinfo_plus.c
