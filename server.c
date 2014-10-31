@@ -177,8 +177,8 @@ int main(int argc, char *argv[])
                     sprintf(serv_ephe_port, "%i", ntohs(conn_servaddr.sin_port));
                     printf("ephemeral port number is: %s\n",  serv_ephe_port);
 
-                    Write(conn_sockfd, serv_ephe_port, MAXLINE);
-                    close(socket_config[num].sockfd);
+                   // Write(conn_sockfd, serv_ephe_port, MAXLINE);
+                    //close(socket_config[num].sockfd);
 
 
                     bzero(&conn_cliaddr, sizeof(conn_cliaddr));
