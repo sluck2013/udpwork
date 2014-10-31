@@ -88,13 +88,12 @@ void listenSockets() {
 void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const char *request_file) {
     for (int socket_cnt = 0; socket_cnt < iSockNum; ++socket_cnt) {
         if(socket_cnt != iListenSockIdx) {
-            /*close all the sockets except the one on which the client request arrived (num)
-              leave the "listening" socket open*/
+            /* close all sockets other than "listening" */
             close(socket_config[socket_cnt].sockfd);
         }
     }
 
-    /* if the client is on the local net, then use the SO_DONTROUTE socket option */
+    /* if the client is local,use SO_DONTROUTE socket option */
     const int on = 1;
     if(isLocal(pClientAddr)) {
         printf("*client host is local\n");
@@ -107,8 +106,7 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
         printf("client host is not local\n");
     }
 
-    /*  server child creates a UDP socket(connection socket) 
-        to handle file transfer to client  */
+    /*  server child creates "connection" socket */
 
     int conn_sockfd;
     struct sockaddr_in conn_servaddr;
@@ -168,18 +166,18 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
         printf("send ephemeral port number %i to client \n", serv_ephe_port);
     }             
 
-                         // transfer file
-                    Read(conn_sockfd, request_file, MAXLINE);
-                    printf("file name: %s\n", request_file);
+    // transfer file
+    Read(conn_sockfd, request_file, MAXLINE);
+    printf("file name: %s\n", request_file);
 
-                    FILE * prefiledp;
-                    prefiledp=fopen(request_file, "r");
+    FILE * prefiledp;
+    prefiledp=fopen(request_file, "r");
 
-                    if(prefiledp==NULL)
-                    {
-                        printf("cannot open file!\n");
-                        exit(1);
-                    }       
+    if(prefiledp==NULL)
+    {
+        printf("cannot open file!\n");
+        exit(1);
+    }       
 
 }
 
