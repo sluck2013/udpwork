@@ -10,14 +10,8 @@
 
 
 struct server_configuration server_config;
-struct in_addr bitwise_and(struct in_addr ip, struct in_addr mask);
 struct socket_configuration socket_config[MAXSOCKET];
 int iSockNum;
-void readConfig();
-void bindSockets();
-void listenSockets();
-int isLocal(struct sockaddr_in *clientAddr);
-void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr);
 
 int main(int argc, char *argv[]) 
 {
@@ -80,10 +74,8 @@ void listenSockets() {
 
                 /*server fork off a child process to handle the client*/
                 pid_t pid = fork();
-
                 if (pid < 0) {
                     errQuit(ERR_FORK_FAIL);
-
                 } else if (pid == 0) {
                     handleRequest(num, &cliaddr);
 
@@ -175,19 +167,20 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr) {
     } else {
         printf("send ephemeral port number %i to client \n", serv_ephe_port);
     }             
-                         // transfer file
-                    char request_file[MAXLINE];
-                    Read(conn_sockfd, request_file, MAXLINE);
-                    printf("file name: %s\n", request_file);
 
-                    FILE * prefiledp;
-                    prefiledp=fopen(request_file, "r");
+    // transfer file
+    char request_file[MAXLINE];
+    Read(conn_sockfd, request_file, MAXLINE);
+    printf("file name: %s\n", request_file);
 
-                    if(prefiledp==NULL)
-                    {
-                        printf("cannot open file!\n");
-                        exit(1);
-                    }       
+    FILE * prefiledp;
+    prefiledp=fopen(request_file, "r");
+
+    if(prefiledp==NULL)
+    {
+        printf("cannot open file!\n");
+        exit(1);
+    }       
 }
 
 void readConfig() {

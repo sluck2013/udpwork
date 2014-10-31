@@ -18,3 +18,10 @@ struct server_configuration
     int server_port; 
     int server_win_size;
 };
+
+void readConfig();
+void bindSockets();
+void listenSockets();
+int isLocal(struct sockaddr_in *clientAddr);
+void handleRequest(int iListenSock, struct sockaddr_in *pcClientAddr);
+struct in_addr bitwise_and(struct in_addr ip, struct in_addr mask);
