@@ -19,8 +19,6 @@ int isLocal(struct sockaddr_in *clientAddr);
 
 int main(int argc, char *argv[]) 
 {
-    int socket_cnt;
-
     /* read file */
     readConfig();
 
@@ -35,7 +33,7 @@ int main(int argc, char *argv[])
 
     /* to see which file descriptor is the largest */
     maxfd = socket_config[0].sockfd; //assume first one is largest
-    for(socket_cnt = 0; socket_cnt < iSockNum; ++socket_cnt) {
+    for(int socket_cnt = 0; socket_cnt < iSockNum; ++socket_cnt) {
         if(socket_config[socket_cnt].sockfd > maxfd) {
             maxfd = socket_config[socket_cnt].sockfd;
         }
@@ -82,13 +80,12 @@ int main(int argc, char *argv[])
                 char *IPserver = Sock_ntop_host((SA*)&socket_config[num].ip, sizeof(socket_config[num].ip));
 
                 /*server fork off a child process to handle the client*/
-                pid_t pid;
-                pid = fork();
+                pid_t pid = fork();
 
                 if (pid < 0) {
                     errQuit(ERR_FORK_FAIL);
                 } else if (pid == 0) {
-                    for (socket_cnt = 0; socket_cnt<iSockNum; ++socket_cnt) {
+                    for (int socket_cnt = 0; socket_cnt < iSockNum; ++socket_cnt) {
                         if(socket_cnt != num) {
                             /*close all the sockets except the one on which the client request arrived (num)
                               leave the "listening" socket open*/
@@ -155,12 +152,9 @@ int main(int argc, char *argv[])
                     Connect(conn_sockfd, (SA*)&conn_cliaddr, sizeof(conn_cliaddr));
 
 
-                     if(sendto(socket_config[num].sockfd, serv_ephe_port, MAXLINE, 0, &cliaddr, sizeof(cliaddr))<0)
-                     {
+                     if(sendto(socket_config[num].sockfd, serv_ephe_port, MAXLINE, 0, &cliaddr, sizeof(cliaddr))<0) {
                         printf("sending error %s\n", strerror(errno));
-                     }
-                     else
-                     {
+                     } else {
                         printf("send ephemeral port number %i to client \n", serv_ephe_port);
                      }                    
                 }
@@ -235,8 +229,7 @@ void bindSockets() {
     }
 }
 
-struct in_addr bitwise_and(struct in_addr ip, struct in_addr mask)
-{
+struct in_addr bitwise_and(struct in_addr ip, struct in_addr mask) {
     in_addr_t subnet_addr;
     struct in_addr subnet;
     subnet.s_addr=ip.s_addr & mask.s_addr;
