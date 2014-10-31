@@ -142,9 +142,6 @@ int main(int argc, char *argv[])
                     sprintf(serv_ephe_port, "%i", ntohs(conn_servaddr.sin_port));
                     printf("ephemeral port number is: %s\n", serv_ephe_port);
 
-                   // Write(conn_sockfd, serv_ephe_port, MAXLINE);
-                    //close(socket_config[num].sockfd);
-
 
                     bzero(&conn_cliaddr, sizeof(conn_cliaddr));
                     conn_cliaddr.sin_family = AF_INET;
@@ -157,6 +154,15 @@ int main(int argc, char *argv[])
 
                     Connect(conn_sockfd, (SA*)&conn_cliaddr, sizeof(conn_cliaddr));
 
+
+                     if(sendto(socket_config[num].sockfd, serv_ephe_port, MAXLINE, 0, &cliaddr, sizeof(cliaddr))<0)
+                     {
+                        printf("sending error %s\n", strerror(errno));
+                     }
+                     else
+                     {
+                        printf("send ephemeral port number %i to client \n", serv_ephe_port);
+                     }                    
                 }
             }
         }
@@ -252,3 +258,6 @@ int isLocal(struct sockaddr_in *clientAddr) {
     }
     return 0;
 }
+
+
+
