@@ -156,39 +156,41 @@ int main(int argc, char *argv[])
                     //check if client host is local
                     /* Determine if the client is on the same local network */
                     int isLocal;
-	for(int k = 0; k < count; k++)
-	{
-	struct sockaddr_in *intaddr = (struct sockaddr_in *)socket_config[k].ip;
-	uint32_t uintaddr = intaddr->sin_addr.s_addr; 
-	struct sockaddr_in *intmask = (struct sockaddr_in *) socket_config[k].mask;
-	uint32_t uintmask = intmask->sin_addr.s_addr; 
-	
-	uint32_t uintsubnet_addr = uintaddr & uintmask;
-	uint32_t uintserver_addr = (cliaddr->sin_addr.s_addr) & uintmask;
-	//if the XOR is = 0, then perfect match, and therefore local
-	if( (uintsubnet_addr ^ uintserver_addr) == 0)
-	   {
-	      isLocal = 1;
-	     break;
-	    }
-	}
+                    for(int k = 0; k < count; k++)
+                    {
+
+                        uint32_t uServerAddr = socket_config[k].ip.s_addr;
+                        uint32_t uMaskAddr = socket_config[k].mask.s_addr;
+                        uint32_t uClientAddr = cliaddr.sin_addr.s_addr;
+
+                        uint32_t uServerSub = uServerAddr & uMaskAddr;
+                        uint32_t uClientSub = uClientAddr & uMaskAddr;
+
+
+                        //if the XOR is = 0, then perfect match, and therefore local
+                        if(uServerSub == uClientSub)
+                        {
+                            isLocal = 1;
+                            break;
+                        }
+                    }
 
 
 
-	/* if the client is on the local net, then use the SO_DONTROUTE socket option */
-	if(isLocal == 1)
-	{
-	printf("*client host is local\n");
-	if(setsockopt(socket_config[num].sockfd, SOL_SOCKET, SO_DONTROUTE, &on, sizeof(on)) < 0)
-	   {
-	printf("setting socket error \n");
-	exit(1);
-	    }
-	}
-	else
-	{
-	printf("*client host is not local\n");
-	}
+                    /* if the client is on the local net, then use the SO_DONTROUTE socket option */
+                    if(isLocal == 1)
+                    {
+                        printf("*client host is local\n");
+                        if(setsockopt(socket_config[num].sockfd, SOL_SOCKET, SO_DONTROUTE, &on, sizeof(on)) < 0)
+                        {
+                            printf("setting socket error \n");
+                            exit(1);
+                        }
+                    }
+                    else
+                    {
+                        printf("*client host is not local\n");
+                    }
 
 
 
@@ -196,57 +198,57 @@ int main(int argc, char *argv[])
 
 
 
-                      /*  server child creates a UDP socket(connection socket) 
-                      to handle file transfer to client  */
+                    /*  server child creates a UDP socket(connection socket) 
+                        to handle file transfer to client  */
 
-                      int conn_sockfd;
-                      struct sockaddr_in conn_servaddr;
-                      struct sockaddr_in conn_cliaddr;
+                    int conn_sockfd;
+                    struct sockaddr_in conn_servaddr;
+                    struct sockaddr_in conn_cliaddr;
 
-                      conn_sockfd=Socket(AF_INET, SOCK_DGRAM, 0);
+                    conn_sockfd=Socket(AF_INET, SOCK_DGRAM, 0);
 
-                      bzero(&conn_servaddr, sizeof(conn_servaddr));
-                      conn_servaddr.sin_family=AF_INET;
-                      conn_servaddr.sin_port=htons(0);
-                      int k=inet_pton(AF_INET, IPserver, &conn_servaddr.sin_addr);
-                      if(k<=0)
-                      {
-                      	//printf("Inet_pton error for IPserver\n");
-                      	errQuit(ERR_INET_PTON_SERV);
-                      }
+                    bzero(&conn_servaddr, sizeof(conn_servaddr));
+                    conn_servaddr.sin_family=AF_INET;
+                    conn_servaddr.sin_port=htons(0);
+                    int k=inet_pton(AF_INET, IPserver, &conn_servaddr.sin_addr);
+                    if(k<=0)
+                    {
+                        //printf("Inet_pton error for IPserver\n");
+                        errQuit(ERR_INET_PTON_SERV);
+                    }
 
-                      Bind(conn_sockfd, (SA *) &conn_servaddr, sizeof(conn_servaddr));
+                    Bind(conn_sockfd, (SA *) &conn_servaddr, sizeof(conn_servaddr));
 
 
-                      // use getsockname 
-                      socklen_t len_conn_servaddr= sizeof(conn_servaddr);
-                       int n= getsockname(conn_sockfd, (SA* )& conn_servaddr, &len_conn_servaddr);
-                       if(n<0)
-                       {
-                       	errQuit(ERR_GETSOCKNAME);
-                       }
+                    // use getsockname 
+                    socklen_t len_conn_servaddr= sizeof(conn_servaddr);
+                    int n= getsockname(conn_sockfd, (SA* )& conn_servaddr, &len_conn_servaddr);
+                    if(n<0)
+                    {
+                        errQuit(ERR_GETSOCKNAME);
+                    }
 
-                       // get the ephemeral port number 
-                
-                       char  serv_ephe_port[MAXLINE];
-                       sprintf(serv_ephe_port, "%i", ntohs(conn_servaddr.sin_port));
-                       printf("ephemeral port number is: %s\n",  serv_ephe_port);
+                    // get the ephemeral port number 
 
-                       Write(conn_sockfd, serv_ephe_port, MAXLINE);
-                       close(socket_config[num].sockfd);
+                    char  serv_ephe_port[MAXLINE];
+                    sprintf(serv_ephe_port, "%i", ntohs(conn_servaddr.sin_port));
+                    printf("ephemeral port number is: %s\n",  serv_ephe_port);
 
-                       
-                      bzero(&conn_cliaddr, sizeof(conn_cliaddr));
-                      conn_cliaddr.sin_family=AF_INET;
-                      conn_cliaddr.sin_port=cli_port_num;
-                      int j=inet_pton(AF_INET, IPclient, &conn_cliaddr.sin_addr);
-                      if(j<=0)
-                      {
-                      	//printf("Inet_pton error for IPclient\n");
-                      	errQuit(ERR_INET_PTON_CLI);
-                      }
+                    Write(conn_sockfd, serv_ephe_port, MAXLINE);
+                    close(socket_config[num].sockfd);
 
-                      Connect(conn_sockfd, (SA *)&conn_cliaddr, sizeof(conn_cliaddr));
+
+                    bzero(&conn_cliaddr, sizeof(conn_cliaddr));
+                    conn_cliaddr.sin_family=AF_INET;
+                    conn_cliaddr.sin_port=cli_port_num;
+                    int j=inet_pton(AF_INET, IPclient, &conn_cliaddr.sin_addr);
+                    if(j<=0)
+                    {
+                        //printf("Inet_pton error for IPclient\n");
+                        errQuit(ERR_INET_PTON_CLI);
+                    }
+
+                    Connect(conn_sockfd, (SA *)&conn_cliaddr, sizeof(conn_cliaddr));
 
 
                 }
