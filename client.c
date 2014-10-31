@@ -37,6 +37,7 @@ void readConfig() {
             errQuit(ERR_READ_CLIENT_IN);
         }
     }
+    strcpy(config.IPServer, config.serverAddr);
 }
 
 /* 
@@ -70,6 +71,9 @@ void setIPClient() {
     }
 
     free_ifi_info_plus(ifiHead);
+    printItem("IPClient is set to", config.IPClient);
+    printItem("IPServer is set to", config.IPServer);
+    println();
 }
 
 /*
@@ -146,24 +150,33 @@ inline int getPrefixLen(uint32_t a, uint32_t b) {
  */
 void createUDPSocket() {
     int sockfd;
-    struct sockaddr_in siMyAddr, siGotAddr;
-    socklen_t slAddrLen = sizeof(siGotAddr);
-    struct in_addr iaGotAddr;
+    //siInitAddr - designated by IPClient
+    //siLocalAddr - returned by getsockname()
+    struct sockaddr_in siInitAddr, siLocalAddr;
+    socklen_t slAddrLen = sizeof(siLocalAddr);
+    struct in_addr iaLocalAddr;
+
 
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    printInfo("UDP socket created");
 
-    bzero(&siMyAddr, sizeof(siMyAddr));
-    siMyAddr.sin_family = AF_INET;
-    inet_pton(AF_INET, config.IPClient, &siMyAddr.sin_addr);
-    siMyAddr.sin_port = htons(0);
+    bzero(&siInitAddr, sizeof(siInitAddr));
+    siInitAddr.sin_family = AF_INET;
+    inet_pton(AF_INET, config.IPClient, &siInitAddr.sin_addr);
+    siInitAddr.sin_port = htons(0);
     
-    bind(sockfd, (SA*)&siMyAddr, sizeof(siMyAddr));
-    getsockname(sockfd, (SA*)&siGotAddr, &slAddrLen);
-    printf("%u\n", ntohs(siGotAddr.sin_port));
-    printf("%s\n", Sock_ntop_host((SA*)&siGotAddr, sizeof(siGotAddr)));
+    bind(sockfd, (SA*)&siInitAddr, sizeof(siInitAddr));
+    printInfo("Port binded");
+
+    getsockname(sockfd, (SA*)&siLocalAddr, &slAddrLen);
+    printSockInfo(&siLocalAddr, "Local");
+    //printf("%u\n", ntohs(siGotAddr.sin_port));
+    //printf("%s\n", Sock_ntop_host((SA*)&siGotAddr, sizeof(siGotAddr)));
 }
 
 
-void printSockInfo(SA* addr, socklen_t len, char* addrName) {
-    //int iPort = ntohs(
+void printSockInfo(struct sockaddr_in* addr, char* addrName) {
+    unsigned int uiPort = ntohs(addr->sin_port);
+    char* pcIP = Sock_ntop_host((SA*)addr, sizeof(*addr));
+    printf("%s address assigned to socket: %s:%u\n", addrName, pcIP, uiPort);
 }

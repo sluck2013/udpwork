@@ -18,3 +18,7 @@ void printItem(const char* key, const char* value) {
 void println() {
     printf("\n");
 }
+
+void printInfo(char* info) {
+    printItem("INFO", info);
+}

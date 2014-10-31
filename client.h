@@ -25,6 +25,6 @@ void createUDPSocket();
 int isOnSameHost(struct ifi_info *ifiHead);
 int isLocal(struct ifi_info* ifiHead, struct ifi_info **ifiMatch);
 inline int getPrefixLen(uint32_t a, uint32_t b);
-void printSockInfo(SA* addr, socklen_t len, char* addrName);
+void printSockInfo(struct sockaddr_in* addr, char* addrName);
 
 #endif
