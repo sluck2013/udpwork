@@ -183,17 +183,3 @@ void createUDPSocket() {
     printSockInfo(&siForeignAddr, "Foreign");
     Write(sockfd, config.dataFile, strlen(config.dataFile));
 }
-
-/*
- * Print IP address and port number from sockaddr_in struct.
- * Used to print info returned by getsockname and getpeername.
- * @param struct sockaddr_in* addr pointer to sockaddr_in variable
- *        containing IP server and port number
- * @param char* addrName string which should be either "Local"
- *        or "Foreign"
- */
-void printSockInfo(struct sockaddr_in* addr, char* addrName) {
-    unsigned int uiPort = ntohs(addr->sin_port);
-    char* pcIP = Sock_ntop_host((SA*)addr, sizeof(*addr));
-    printf("%s address assigned to socket: %s:%u\n", addrName, pcIP, uiPort);
-}

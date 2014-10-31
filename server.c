@@ -40,13 +40,11 @@ void listenSockets() {
         }
     }
 
-
     FD_ZERO(&rset);
     while (1) {
         for(int num = 0; num < iSockNum; ++num) {
             FD_SET(socket_config[num].sockfd, &rset);
         }
-
 
         nready = select(maxfd + 1, &rset, NULL, NULL, NULL);
         if (nready < 0) {
@@ -70,7 +68,6 @@ void listenSockets() {
                 if (n < 0) {
                     errQuit(ERR_READ_DATA_FROM_CLI);
                 }
-
 
                 /*server fork off a child process to handle the client*/
                 pid_t pid = fork();
@@ -96,7 +93,7 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     /* if the client is local,use SO_DONTROUTE socket option */
     const int on = 1;
     if(isLocal(pClientAddr)) {
-        printf("*client host is local\n");
+        printf("Client host is local\n");
         if(setsockopt(socket_config[iListenSockIdx].sockfd, 
                     SOL_SOCKET, SO_DONTROUTE, &on, sizeof(on)) < 0) {
             printf("setting socket error \n");
@@ -144,7 +141,9 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
 
     char serv_ephe_port[MAXLINE];
     sprintf(serv_ephe_port, "%i", ntohs(conn_servaddr.sin_port));
-    printf("ephemeral port number is: %s\n", serv_ephe_port);
+    //printf("ephemeral port number is: %s\n", serv_ephe_port);
+    
+    printSockInfo(&conn_servaddr, "Local");
 
 
     //bzero(&conn_cliaddr, sizeof(conn_cliaddr));
@@ -244,6 +243,7 @@ void bindSockets() {
 
         ++count;
     }
+    iSockNum = count;
 }
 
 struct in_addr bitwise_and(struct in_addr ip, struct in_addr mask) {

@@ -10,5 +10,6 @@ void printItem(const char* key, const char* value);
 void println();
 void printInfo(char *info);
 void printIfiInfo(struct ifi_info* ifi);
+void printSockInfo(struct sockaddr_in* addr, char* addrName);
 
 #endif
