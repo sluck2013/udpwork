@@ -15,7 +15,9 @@ struct socket_configuration socket_config[MAXSOCKET];
 int iSockNum;
 void readConfig();
 void bindSockets();
+void listenSockets();
 int isLocal(struct sockaddr_in *clientAddr);
+void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr);
 
 int main(int argc, char *argv[]) 
 {
@@ -25,6 +27,11 @@ int main(int argc, char *argv[])
     /* binding each IP address to a distinct UDP socket */
     bindSockets();
 
+    listenSockets();
+}
+
+
+void listenSockets() {
     // use "select " to monitor the sockets it has created
     // for incoming datagrams
     fd_set rset;
@@ -65,19 +72,11 @@ int main(int argc, char *argv[])
 
                 char cli_port[MAXLINE];
                 int n = Recvfrom(socket_config[num].sockfd, cli_port, 
-                        MAXLINE, 0, (struct sockaddr*)&cliaddr, &len_cliaddr);
+                        MAXLINE, 0, (SA*)&cliaddr, &len_cliaddr);
                 if (n < 0) {
                     errQuit(ERR_READ_DATA_FROM_CLI);
                 }
 
-                //char IPclient[MAXCHAR], IPserver[MAXCHAR]; 
-                int cli_port_num;
-
-                cli_port_num = atoi(cli_port);
-                //sprintf(IPserver, "%s", inet_ntoa(socket_config[num].ip));
-                //sprintf(IPclient, "%s", inet_ntoa(cliaddr.sin_addr));
-                char *IPclient = Sock_ntop_host((SA*)&cliaddr.sin_addr, sizeof(cliaddr.sin_addr));
-                char *IPserver = Sock_ntop_host((SA*)&socket_config[num].ip, sizeof(socket_config[num].ip));
 
                 /*server fork off a child process to handle the client*/
                 pid_t pid = fork();
@@ -85,84 +84,96 @@ int main(int argc, char *argv[])
                 if (pid < 0) {
                     errQuit(ERR_FORK_FAIL);
                 } else if (pid == 0) {
-                    for (int socket_cnt = 0; socket_cnt < iSockNum; ++socket_cnt) {
-                        if(socket_cnt != num) {
-                            /*close all the sockets except the one on which the client request arrived (num)
-                              leave the "listening" socket open*/
-                            close(socket_config[socket_cnt].sockfd);
-                        }
-                    }
-
-                    /* if the client is on the local net, then use the SO_DONTROUTE socket option */
-                    const int on = 1;
-                    if(isLocal(&cliaddr)) {
-                        printf("*client host is local\n");
-                        if(setsockopt(socket_config[num].sockfd, SOL_SOCKET, SO_DONTROUTE, &on, sizeof(on)) < 0) {
-                            printf("setting socket error \n");
-                            exit(1);
-                        }
-                    } else {
-                        printf("*client host is not local\n");
-                    }
-
-                    /*  server child creates a UDP socket(connection socket) 
-                        to handle file transfer to client  */
-
-                    int conn_sockfd;
-                    struct sockaddr_in conn_servaddr;
-                    struct sockaddr_in conn_cliaddr;
-
-                    conn_sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
-
-                    bzero(&conn_servaddr, sizeof(conn_servaddr));
-                    conn_servaddr.sin_family = AF_INET;
-                    conn_servaddr.sin_port = htons(0);
-                    int k = inet_pton(AF_INET, IPserver, &conn_servaddr.sin_addr);
-                    if (k <= 0) {
-                        //printf("Inet_pton error for IPserver\n");
-                        errQuit(ERR_INET_PTON_SERV);
-                    }
-
-                    Bind(conn_sockfd, (SA*)&conn_servaddr, sizeof(conn_servaddr));
-
-
-                    // use getsockname 
-                    socklen_t len_conn_servaddr= sizeof(conn_servaddr);
-                    int n = getsockname(conn_sockfd, (SA*)&conn_servaddr, &len_conn_servaddr);
-                    if (n < 0) {
-                        errQuit(ERR_GETSOCKNAME);
-                    }
-
-                    // get the ephemeral port number 
-
-                    char serv_ephe_port[MAXLINE];
-                    sprintf(serv_ephe_port, "%i", ntohs(conn_servaddr.sin_port));
-                    printf("ephemeral port number is: %s\n", serv_ephe_port);
-
-
-                    bzero(&conn_cliaddr, sizeof(conn_cliaddr));
-                    conn_cliaddr.sin_family = AF_INET;
-                    conn_cliaddr.sin_port = cli_port_num;
-                    int j = inet_pton(AF_INET, IPclient, &conn_cliaddr.sin_addr);
-                    if (j <= 0) {
-                        //printf("Inet_pton error for IPclient\n");
-                        errQuit(ERR_INET_PTON_CLI);
-                    }
-
-                    Connect(conn_sockfd, (SA*)&conn_cliaddr, sizeof(conn_cliaddr));
-
-
-                     if(sendto(socket_config[num].sockfd, serv_ephe_port, MAXLINE, 0, &cliaddr, sizeof(cliaddr))<0) {
-                        printf("sending error %s\n", strerror(errno));
-                     } else {
-                        printf("send ephemeral port number %i to client \n", serv_ephe_port);
-                     }                    
+                    handleRequest(num, &cliaddr);
                 }
             }
         }
     }
 }
 
+void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr) {
+    for (int socket_cnt = 0; socket_cnt < iSockNum; ++socket_cnt) {
+        if(socket_cnt != iListenSockIdx) {
+            /*close all the sockets except the one on which the client request arrived (num)
+              leave the "listening" socket open*/
+            close(socket_config[socket_cnt].sockfd);
+        }
+    }
+
+    /* if the client is on the local net, then use the SO_DONTROUTE socket option */
+    const int on = 1;
+    if(isLocal(pClientAddr)) {
+        printf("*client host is local\n");
+        if(setsockopt(socket_config[iListenSockIdx].sockfd, 
+                    SOL_SOCKET, SO_DONTROUTE, &on, sizeof(on)) < 0) {
+            printf("setting socket error \n");
+            exit(1);
+        }
+    } else {
+        printf("client host is not local\n");
+    }
+
+    /*  server child creates a UDP socket(connection socket) 
+        to handle file transfer to client  */
+
+    int conn_sockfd;
+    struct sockaddr_in conn_servaddr;
+    //struct sockaddr_in conn_cliaddr;
+
+    conn_sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
+
+    bzero(&conn_servaddr, sizeof(conn_servaddr));
+    conn_servaddr.sin_family = AF_INET;
+    conn_servaddr.sin_port = htons(0);
+    //char IPclient[MAXCHAR], IPserver[MAXCHAR]; 
+    //int cli_port_num = atoi(cli_port);
+    //sprintf(IPserver, "%s", inet_ntoa(socket_config[num].ip));
+    //sprintf(IPclient, "%s", inet_ntoa(cliaddr.sin_addr));
+    //char *IPclient = Sock_ntop_host((SA*)&cliaddr.sin_addr, sizeof(cliaddr.sin_addr));
+    //char *IPserver = Sock_ntop_host((SA*)&socket_config[num].ip, sizeof(socket_config[num].ip));
+    //int k = inet_pton(AF_INET, IPserver, &conn_servaddr.sin_addr);
+    conn_servaddr.sin_addr = pClientAddr->sin_addr;
+    //if (k <= 0) {
+        //printf("Inet_pton error for IPserver\n");
+    //    errQuit(ERR_INET_PTON_SERV);
+    //}
+
+    Bind(conn_sockfd, (SA*)&conn_servaddr, sizeof(conn_servaddr));
+
+
+    // use getsockname 
+    socklen_t len_conn_servaddr= sizeof(conn_servaddr);
+    int n = getsockname(conn_sockfd, (SA*)&conn_servaddr, &len_conn_servaddr);
+    if (n < 0) {
+        errQuit(ERR_GETSOCKNAME);
+    }
+
+    // get the ephemeral port number 
+
+    char serv_ephe_port[MAXLINE];
+    sprintf(serv_ephe_port, "%i", ntohs(conn_servaddr.sin_port));
+    printf("ephemeral port number is: %s\n", serv_ephe_port);
+
+
+    //bzero(&conn_cliaddr, sizeof(conn_cliaddr));
+    //conn_cliaddr.sin_family = AF_INET;
+    //conn_cliaddr.sin_port = cli_port_num;
+    //int j = inet_pton(AF_INET, IPclient, &conn_cliaddr.sin_addr);
+    //if (j <= 0) {
+        //printf("Inet_pton error for IPclient\n");
+    //    errQuit(ERR_INET_PTON_CLI);
+    //}
+
+    Connect(conn_sockfd, (SA*)pClientAddr, sizeof(*pClientAddr));
+
+
+    if(sendto(socket_config[iListenSockIdx].sockfd, serv_ephe_port, 
+                MAXLINE, 0, pClientAddr, sizeof(*pClientAddr))<0) {
+        printf("sending error %s\n", strerror(errno));
+    } else {
+        printf("send ephemeral port number %i to client \n", serv_ephe_port);
+    }                    
+}
 
 void readConfig() {
     FILE* config_file = fopen("server.in", "r");
