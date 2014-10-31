@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
 
                     Connect(conn_sockfd, (SA*)&conn_cliaddr, sizeof(conn_cliaddr));
 
-
+                    //server passes client ephemeral port number of server's connection socket
                      if(sendto(socket_config[num].sockfd, serv_ephe_port, MAXLINE, 0, &cliaddr, sizeof(cliaddr))<0)
                      {
                         printf("sending error %s\n", strerror(errno));
@@ -163,7 +163,31 @@ int main(int argc, char *argv[])
                      else
                      {
                         printf("send ephemeral port number %i to client \n", serv_ephe_port);
-                     }                    
+                     }      
+
+                     /* client reconnects its socket to server's connection socket using IPserver 
+                     and ephemeral prot number*/
+                     conn_servaddr.sin_port = htons( (atoi(serv_ephe_port)) );
+                     Connect(conn_sockfd, (SA *)&conn_servaddr, sizeof(conn_servaddr));
+
+
+
+
+                     // transfer file
+                    char request_file[MAXLINE];
+                    Read(conn_sockfd, request_file, MAXLINE);
+                    printf("file name: %s\n", request_file);
+
+                    FILE * prefiledp;
+                    prefiledp=fopen(request_file, "r");
+
+                    if(prefiledp==NULL)
+                    {
+                        printf("cannot open file!\n");
+                        exit(1);
+                    }
+
+                    
                 }
             }
         }
@@ -259,6 +283,4 @@ int isLocal(struct sockaddr_in *clientAddr) {
     }
     return 0;
 }
-
-
 
