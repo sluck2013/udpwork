@@ -64,8 +64,8 @@ void listenSockets() {
                 struct sockaddr_in cliaddr;
                 int len_cliaddr = sizeof(cliaddr);
 
-                char cli_port[MAXLINE];
-                int n = Recvfrom(socket_config[num].sockfd, cli_port, 
+                char request_file[MAXLINE];
+                int n = Recvfrom(socket_config[num].sockfd, request_file,
                         MAXLINE, 0, (SA*)&cliaddr, &len_cliaddr);
                 if (n < 0) {
                     errQuit(ERR_READ_DATA_FROM_CLI);
@@ -77,7 +77,7 @@ void listenSockets() {
                 if (pid < 0) {
                     errQuit(ERR_FORK_FAIL);
                 } else if (pid == 0) {
-                    handleRequest(num, &cliaddr);
+                    handleRequest(num, &cliaddr,  request_file);
 
                 }
             }
@@ -85,7 +85,7 @@ void listenSockets() {
     }
 }
 
-void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr) {
+void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const char *request_file) {
     for (int socket_cnt = 0; socket_cnt < iSockNum; ++socket_cnt) {
         if(socket_cnt != iListenSockIdx) {
             /* close all sockets other than "listening" */
@@ -166,19 +166,19 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr) {
         printf("send ephemeral port number %i to client \n", serv_ephe_port);
     }             
 
-    // transfer file
-    char request_file[MAXLINE];
-    Read(conn_sockfd, request_file, MAXLINE);
-    printf("file name: %s\n", request_file);
+                         // transfer file
+                    Read(conn_sockfd, request_file, MAXLINE);
+                    printf("file name: %s\n", request_file);
 
-    FILE * prefiledp;
-    prefiledp=fopen(request_file, "r");
+                    FILE * prefiledp;
+                    prefiledp=fopen(request_file, "r");
 
-    if(prefiledp==NULL)
-    {
-        printf("cannot open file!\n");
-        exit(1);
-    }       
+                    if(prefiledp==NULL)
+                    {
+                        printf("cannot open file!\n");
+                        exit(1);
+                    }       
+
 }
 
 void readConfig() {
