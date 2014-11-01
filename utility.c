@@ -48,3 +48,12 @@ void printSockInfo(struct sockaddr_in* addr, char* addrName) {
     char* pcIP = Sock_ntop_host((SA*)addr, sizeof(*addr));
     printf("%s address assigned to socket: %s:%u\n", addrName, pcIP, uiPort);
 }
+
+/*
+ * Pack data in to payload.
+ * @param struct Payload* datagram, pointer to the payload to be
+ *        packed into
+ * @param char* data pointer to data read from file
+ */
+void packData(struct Payload* datagram, char* data) {
+}

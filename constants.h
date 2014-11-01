@@ -21,5 +21,6 @@
 #define MAX_DATA_LEN (500)
 #define MAX_PORT_LEN (6)
 #define PAYLOAD_SIZE (512)
+#define MAX_BUF_SIZE (500);
 
 #endif

@@ -268,8 +268,6 @@ void bindSockets() {
         socket_config[count].subnet = bitwise_and(
                 socket_config[count].ip, socket_config[count].mask); 
 
-        /*printf("IP address: %s\n", Sock_ntop((SA*)sa, sizeof(* sa)));
-        printf("Network mask: %s\n", Sock_ntop((SA*)sinptr, sizeof(*sinptr)));*/
         printIfiInfo(ifi);
         printf("Subnet address: %s\n", inet_ntoa(socket_config[count].subnet));
 
