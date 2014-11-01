@@ -22,7 +22,7 @@ struct Config {
 // used to thread creation
 struct Arg {
     int sockfd;
-}
+};
 
 void readConfig();
 void setIPClient();

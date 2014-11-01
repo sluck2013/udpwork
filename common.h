@@ -8,6 +8,9 @@ struct ProtHeader {
 };
 
 struct Payload {
-	struct protHeader;
-	byte data[MAX_DATA_LEN];
+	struct ProtHeader header;
+	//byte data[MAX_DATA_LEN];
+    char data[MAX_DATA_LEN];
+};
+
 #endif
