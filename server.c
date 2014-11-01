@@ -12,6 +12,8 @@
 struct server_configuration server_config;
 struct socket_configuration socket_config[MAXSOCKET];
 int iSockNum;
+struct Payload send_buf[MAX_BUF_SIZE];
+int datagram_num = 0;
 
 int main(int argc, char *argv[]) 
 {
@@ -160,8 +162,7 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     } 
 
 
-    struct Payload send_buf[MAX_BUF_SIZE];
-    int datagram_num = 0;
+    
 
     while (!feof(fileDp)) {
         int read_num = 0;
@@ -189,6 +190,7 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
 
 
     //function call sendData();
+    sendData(conn_sockfd, pClientAddr);
 
 }
 
@@ -279,3 +281,8 @@ int isLocal(struct sockaddr_in *clientAddr) {
     return 0;
 }
 
+void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
+    for(int i=0; i< datagram_num; i++) {
+    Sendto(conn_sockfd, &send_buf[i], PAYLOAD_SIZE, 0, (SA *)pClientAddr, sizeof(* pClientAddr) );
+    }
+}
