@@ -204,9 +204,6 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
 
         if (send_flag) {
             //TODO: Set Header
-            send_buf.header.seqNum = 1;
-            send_buf.header.ack = 0;
-            send_buf.header.win = 0;
             Sendto(conn_sockfd, &send_buf, sizeof(send_buf),
                     0, (SA*)pClientAddr, sizeof(*pClientAddr));
         }

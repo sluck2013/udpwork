@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include "lib/unpifiplus.h"
+#include "common.h"
 
 void printErr(char *errMsg);
 void errQuit(char *errMsg);

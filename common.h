@@ -1,12 +1,14 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include "constants.h"
+
 struct ProtHeader {
 	unsigned long int seqNum;
 	unsigned long int timestamp;
     unsigned long int ackNum;
     unsigned short int winSize;
-    byte flag;
+    unsigned char flag;
 };
 
 struct Payload {
