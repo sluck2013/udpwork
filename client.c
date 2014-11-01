@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <math.h>
 #include "client.h"
 #include "constants.h"
 #include "utility.h"
@@ -7,7 +10,11 @@
 #include "unpthread.h"
 #include "common.h"
 
+
 struct Config config;
+struct Payload plReadBuf[MAX_BUF_SIZE];
+unsigned long int iBufBase = 0;
+unsigned long int iBufEnd = 0;
 
 int main(int argc, char **argv) {
     readConfig();      // read client.in
@@ -198,17 +205,38 @@ void createUDPSocket() {
     pthread_t tid;
     struct Arg arg;
     arg.sockfd = sockfd;
-    Pthread_create(&tid, NULL, receiveData, &arg);
+
+    Pthread_create(&tid, NULL, printData, NULL);
+    while (1) {
+        Read(sockfd, &plReadBuf[iBufEnd], sizeof(plReadBuf[iBufEnd]));
+        ++iBufEnd;
+        if (iBufEnd > MAX_BUF_SIZE) {
+            printErr(ERR_READ_BUF_OVERFLOW);
+        }
+        //if receive FIN, terminate printData();
+        //use pipe to notify printData data ready
+    }
     Pthread_join(tid, NULL);
 }
 
-void* receiveData(void *arg) {
+void* printData(void *arg) {
     while (1) {
-        struct Payload plReadBuf;
-        //char x[MAX_DATA_LEN];
-        Read(((struct Arg*)arg)->sockfd, &plReadBuf, sizeof(plReadBuf));
-        printf("%s", plReadBuf.data);
-fflush(stdout);
+        //lock iBufEnd
+        for (unsigned long int i = iBufBase; i < iBufEnd; ++i) {
+            printf("%s", plReadBuf[i].data);
+            fflush(stdout);
+        }
+        iBufBase = iBufEnd;
+        struct timespec tm, tmRemain;
+        getSleepTime(&tm);
+        nanosleep(&tm, &tmRemain);
     }
     return NULL;
+}
+
+void getSleepTime(struct timespec* tm) {
+    double r = drand48();
+    unsigned long int iMilliSec = round(- config.mu * log(r));
+    tm->tv_sec = iMilliSec / 1000;
+    tm->tv_nsec = iMilliSec % 1000 * 1000000;
 }

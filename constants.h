@@ -12,7 +12,7 @@
 #define ERR_INET_PTON_SERV "Inet_pton error for IPserver"
 #define ERR_INET_PTON_CLI "Inet_pton error for IPclient"
 #define ERR_GETSOCKNAME "getsockname error!"
-
+#define ERR_READ_BUF_OVERFLOW "Received data exceeds reading buffer capacity."
 
 /******** OTHER CONSTS ********/
 #define MAXCHAR (256)
@@ -21,6 +21,6 @@
 #define MAX_DATA_LEN (500)
 #define MAX_PORT_LEN (6)
 #define PAYLOAD_SIZE (512)
-#define MAX_BUF_SIZE (500);
+#define MAX_BUF_SIZE (500)
 
 #endif
