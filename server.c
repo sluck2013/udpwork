@@ -165,7 +165,8 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
         printf("send ephemeral port number %s to client \n", serv_ephe_port);
     }             
 
-
+     
+     // close listening socket
     close(socket_config[iListenSockIdx].sockfd);
 
     // transfer file
