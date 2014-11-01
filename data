@@ -1,30 +1,3 @@
-For example:
-FILE *fp;
-fopen
-
-To open a file you need to use the fopen function, which returns a FILE pointer. Once you've opened a file, you can use the FILE pointer to let the compiler perform input and output functions on the file.
-FILE *fopen(const char *filename, const char *mode);
-In the filename, if you use a string literal as the argument, you need to remember to use double backslashes rather than a single backslash as you otherwise risk an escape character such as \t. Using double backslashes \\ escapes the \ key, so the string works as it is expected. Your users, of course, do not need to do this! It's just the way quoted strings are handled in C and C++.
-fopen modes
-
-The allowed modes for fopen are as follows:
-r  - open for reading
-w  - open for writing (file need not exist)
-a  - open for appending (file need not exist)
-r+ - open for reading and writing, start at beginning
-w+ - open for reading and writing (overwrite file)
-a+ - open for reading and writing (append if file exists)
-Note that it's possible for fopen to fail even if your program is perfectly correct: you might try to open a file specified by the user, and that file might not exist (or it might be write-protected). In those cases, fopen will return 0, the NULL pointer. 
-
-Here's a simple example of using fopen:
-FILE *fp;
-fp=fopen("c:\\test.txt", "r");
-This code will open test.txt for reading in text mode. To open a file in a binary mode you must add a b to the end of the mode string; for example, "rb" (for the reading and writing modes, you can add the b either after the plus sign - "r+b" - or before - "rb+")
-fclose
-
-When you're done working with a file, you should close it using the function
-int fclose(FILE *a_file);
-fclose returns zero if the file is closed successfully.
-
-An example of fclose is
-fclose(fp);
+10charact
+11character
+05cha
