@@ -229,7 +229,6 @@ void* printData(void *arg) {
         iBufBase = iBufEnd;
         struct timespec tm, tmRemain;
         getSleepTime(&tm);
-        printf("sl: %d\n", tm.tv_sec);
         nanosleep(&tm, &tmRemain);
     }
     return NULL;
@@ -242,7 +241,6 @@ void getSleepTime(struct timespec* tm) {
     double r = 0.45;
     double f = config.mu * log(r); 
     int iMilliSec = -(int)f;
-    printf("m:%f %d\n", f, iMilliSec);
     tm->tv_sec = iMilliSec / 1000;
     tm->tv_nsec = iMilliSec % 1000 * 1000000;
 }
