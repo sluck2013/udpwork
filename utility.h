@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include "lib/unpifiplus.h"
+#include "common.h"
 
 void printErr(char *errMsg);
 void errQuit(char *errMsg);
@@ -11,5 +12,6 @@ void println();
 void printInfo(char *info);
 void printIfiInfo(struct ifi_info* ifi);
 void printSockInfo(struct sockaddr_in* addr, char* addrName);
+void packData(struct Payload* datagram, char* data);
 
 #endif

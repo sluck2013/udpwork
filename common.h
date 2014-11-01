@@ -1,21 +1,19 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include "constants.h"
+
 struct ProtHeader {
-	uint32_t seqNum;
-	int ack;
-	int win;
+	unsigned long int seqNum;
+	unsigned long int timestamp;
+    unsigned long int ackNum;
+    unsigned short int winSize;
+    unsigned char flag;
 };
 
 struct Payload {
 	struct ProtHeader header;
-	//byte data[MAX_DATA_LEN];
-   	 char data[MAX_DATA_LEN];
-};
-
-struct Ack {
-	uint32_t seqNum;
-	uint32_t timestamp;
+   	char data[MAX_DATA_LEN];
 };
 
 #endif
