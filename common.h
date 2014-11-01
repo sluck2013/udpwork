@@ -7,12 +7,10 @@ struct ProtHeader {
 	int win;
 };
 
-
 struct Payload {
 	struct ProtHeader header;
 	//byte data[MAX_DATA_LEN];
     char data[MAX_DATA_LEN];
 };
-
 
 #endif
