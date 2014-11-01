@@ -65,8 +65,8 @@ void listenSockets() {
                 int len_cliaddr = sizeof(cliaddr);
 
                 char request_file[MAXLINE];
-                int n = Recvfrom(socket_config[num].sockfd, request_file,
-                        MAXLINE, 0, (SA*)&cliaddr, &len_cliaddr);
+                int n = recvfrom(socket_config[num].sockfd, request_file,
+                     MAXLINE, 0, (SA*)&cliaddr, &len_cliaddr);
                 if (n < 0) {
                     errQuit(ERR_READ_DATA_FROM_CLI);
                 }
@@ -187,6 +187,7 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
 
     //function call sendData();
     sendData(conn_sockfd, pClientAddr);
+    
 
 }
 
