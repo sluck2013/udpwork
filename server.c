@@ -182,9 +182,11 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     } 
 
     struct Payload send_buf;
-    int data_charNum;
-    int send_times;
+    //int data_charNum;
+    //int send_times;
+    struct Payload buffer[MAX_BUF_SIZE];
 
+/*
     while (!feof(prefiledp)) {
         int read_num = 0;
         int send_flag = 1;
@@ -211,6 +213,21 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
                     0, (SA*)pClientAddr, sizeof(*pClientAddr));
         }
     }
+*/
+    char ch;
+    int ch_size;
+    ch=fgetc(prefiledp);
+    while(ch!=EOF)
+    {
+        ch_size++;
+        ch=fgetc(prefiledp);
+        for(int i=0; i<MAX_BUF_SIZE; i++)
+        {
+            buffer[i]=ch;
+        }
+    }
+    printf("number of characters  %d\n", ch_size);
+
 }
 
 void readConfig() {
