@@ -114,18 +114,7 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     bzero(&conn_servaddr, sizeof(conn_servaddr));
     conn_servaddr.sin_family = AF_INET;
     conn_servaddr.sin_port = htons(0);
-    //char IPclient[MAXCHAR], IPserver[MAXCHAR]; 
-    //int cli_port_num = atoi(cli_port);
-    //sprintf(IPserver, "%s", inet_ntoa(socket_config[num].ip));
-    //sprintf(IPclient, "%s", inet_ntoa(cliaddr.sin_addr));
-    //char *IPclient = Sock_ntop_host((SA*)&cliaddr.sin_addr, sizeof(cliaddr.sin_addr));
-    //char *IPserver = Sock_ntop_host((SA*)&socket_config[num].ip, sizeof(socket_config[num].ip));
-    //int k = inet_pton(AF_INET, IPserver, &conn_servaddr.sin_addr);
     conn_servaddr.sin_addr = pClientAddr->sin_addr;
-    //if (k <= 0) {
-        //printf("Inet_pton error for IPserver\n");
-    //    errQuit(ERR_INET_PTON_SERV);
-    //}
 
     Bind(conn_sockfd, (SA*)&conn_servaddr, sizeof(conn_servaddr));
 
@@ -145,18 +134,7 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     
     printSockInfo(&conn_servaddr, "Local");
 
-
-    //bzero(&conn_cliaddr, sizeof(conn_cliaddr));
-    //conn_cliaddr.sin_family = AF_INET;
-    //conn_cliaddr.sin_port = cli_port_num;
-    //int j = inet_pton(AF_INET, IPclient, &conn_cliaddr.sin_addr);
-    //if (j <= 0) {
-        //printf("Inet_pton error for IPclient\n");
-    //    errQuit(ERR_INET_PTON_CLI);
-    //}
-
     Connect(conn_sockfd, (SA*)pClientAddr, sizeof(*pClientAddr));
-
 
     if (sendto(socket_config[iListenSockIdx].sockfd, serv_ephe_port, 
                 sizeof(serv_ephe_port), 0, (SA*)pClientAddr, sizeof(*pClientAddr))<0) {
@@ -173,41 +151,42 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     //Read(conn_sockfd, request_file, MAXLINE);
     printf("file name: %s\n", request_file);
 
-    FILE* prefiledp;
-    prefiledp = fopen(request_file, "r");
+    FILE* fileDp;
+    fileDp = fopen(request_file, "r");
 
-    if (prefiledp == NULL) {
+    if (fileDp == NULL) {
         printf("cannot open file!\n");
         exit(1);
     } 
 
-    struct Payload send_buf;
-    int data_charNum;
-    int send_times;
+    struct Payload send_buf[MAX_BUF_SIZE];
+    int datagram_num = 0;
 
-    while (!feof(prefiledp)) {
+    while (!feof(fileDp)) {
         int read_num = 0;
-        int send_flag = 1;
+        int write_flag = 1;
+        char cBuf[MAX_DATA_LEN];
+
         while (read_num < MAX_DATA_LEN - 1) {
-            char c = fgetc(prefiledp);
-            if (feof(prefiledp)) {
+            char c = fgetc(fileDp);
+            if (feof(fileDp)) {
                 if (read_num == 1) {
-                    send_flag = 0;
+                    write_flag = 0;
                 } else {
-                    send_flag = 1;
+                    write_flag = 1;
                 }
                 break;
             }
-            send_buf.data[read_num++] = c;
+            cBuf[read_num++] = c;
         }
-        send_buf.data[read_num] = '\0';
+        cBuf[read_num] = '\0';
 
-        if (send_flag) {
-            //TODO: Set Header
-            Sendto(conn_sockfd, &send_buf, sizeof(send_buf),
-                    0, (SA*)pClientAddr, sizeof(*pClientAddr));
+        if (write_flag) {
+            packData(&send_buf[datagram_num++], cBuf);
         }
     }
+
+    //function call sendData();
 }
 
 void readConfig() {
