@@ -10,9 +10,9 @@ FLAGS = $(IFLAG) $(CFLAGS)
 all: client server
 
 client: client.o  utility.o get_ifi_info_plus.o
-	$(CC) $(CFLAGS) -o client client.o utility.o $(LIBS) -lm
+	$(CC) $(CFLAGS) -o client client.o utility.o $(LIBS) -lm 
 client.o: client.c client.h constants.h get_ifi_info_plus.o
-	$(CC) $(FLAGS) -c client.c get_ifi_info_plus.o $(LIBS) 
+	$(CC) $(FLAGS) -c client.c get_ifi_info_plus.o $(LIBS)
 server: server.o utility.o
 	$(CC) $(CFLAGS) -o server server.o utility.o $(LIBS)
 server.o: server.c server.h constants.h lib/unprtt.h lib/unpifiplus.h get_ifi_info_plus.o

@@ -55,7 +55,7 @@ void printSockInfo(struct sockaddr_in* addr, char* addrName) {
  *        packed into
  * @param char* data pointer to data read from file
  */
-void packData(struct Payload* datagram, char* data) {
+void packData(struct Payload* datagram, const char* data) {
     //TODO: pack
     datagram->header.seqNum = 0;
     datagram->header.timestamp = 0;
