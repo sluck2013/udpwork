@@ -165,6 +165,9 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
         printf("send ephemeral port number %s to client \n", serv_ephe_port);
     }             
 
+
+    close(socket_config[iListenSockIdx].sockfd);
+
     // transfer file
     //Read(conn_sockfd, request_file, MAXLINE);
     printf("file name: %s\n", request_file);
@@ -176,7 +179,53 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     {
         printf("cannot open file!\n");
         exit(1);
-    }       
+    }   
+
+/*
+    char ch=fgetc(prefiledp);
+    while(ch!=EOF)
+    {
+        ch=fgetc(prefiledp);
+    }
+    printf("output is %s",ch);
+*/
+
+    struct payload serv_send_buf;
+    int data_charNum;
+    int send_times;
+
+    ch=fgetc(prefiledp);
+    while(ch!=EOF)
+    {
+        data_charNum++;
+        ch=fgetc(prefiledp);
+    }
+
+    if(data_charNum%MAX_DATA_LEN==0)
+    {
+        send_times=data_charNum/MAX_DATA_LEN;
+    }
+    else
+    {
+        send_times=data_charNum/MAX_DATA_LEN+1;
+    }
+
+    for(int a=1; a<=send_times; a++)
+    {
+    fgets(serv_send_buf.data, MAX_DATA_LEN, prefiledp);
+    printf("%s",serv_send_buf.data);
+    sendto(conn_sockfd, serv_send_buf, SIZE_PAYLOAD, 0, (SA*)&cliaddr, &len_cliaddr );
+    }
+
+
+
+
+
+
+
+
+
+
 
 }
 
