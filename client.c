@@ -4,6 +4,7 @@
 #include "utility.h"
 #include "unp.h"
 #include "lib/get_ifi_info_plus.c"
+#include "unpthread.h"
 
 struct Config config;
 
@@ -192,4 +193,18 @@ void createUDPSocket() {
     siServerAddr.sin_port = htons(config.port);
     Connect(sockfd, (SA*)&siServerAddr, sizeof(siServerAddr));
     printInfo("Reconnected to server"); // TODO: add addr.
+
+    pthread_t tid;
+    Arg arg;
+    arg.sockfd = sockfd;
+    Pthread_create(&tid, NULL, receiveData, &arg);
+    Pthread_join(tid, NULL);
+}
+
+void* receiveData(void *arg) {
+    while (1) {
+        Payload plReadBuf;
+        Read(arg->sockfd, &plReadBuf, sizeof(plReadBuf));
+    }
+    return NULL;
 }

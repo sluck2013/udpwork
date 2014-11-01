@@ -19,11 +19,17 @@ struct Config {
     char IPClient[MAXCHAR];
 };
 
+// used to thread creation
+struct Arg {
+    int sockfd;
+}
+
 void readConfig();
 void setIPClient();
 void createUDPSocket();
 int isOnSameHost(struct ifi_info *ifiHead);
 int isLocal(struct ifi_info* ifiHead, struct ifi_info **ifiMatch);
 inline int getPrefixLen(uint32_t a, uint32_t b);
+void* receiveData(void *arg);
 
 #endif
