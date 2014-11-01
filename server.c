@@ -128,7 +128,7 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
 
     // get the ephemeral port number 
 
-    char serv_ephe_port[MAX_PORT_LEN];
+    char serv_ephe_port[PAYLOAD_SIZE];
     sprintf(serv_ephe_port, "%i", ntohs(conn_servaddr.sin_port));
     //printf("ephemeral port number is: %s\n", serv_ephe_port);
     
