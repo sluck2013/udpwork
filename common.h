@@ -10,4 +10,5 @@ struct protHeader {
 struct payload {
 	struct protHeader;
 	byte data[MAX_DATA_LEN];
+};
 #endif
