@@ -7,7 +7,7 @@
 #include "lib/get_ifi_info_plus.c"
 #include <setjmp.h>
 #include <math.h>
-
+#include "common.h"
 
 struct server_configuration server_config;
 struct socket_configuration socket_config[MAXSOCKET];
@@ -158,8 +158,8 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     Connect(conn_sockfd, (SA*)pClientAddr, sizeof(*pClientAddr));
 
 
-    if(sendto(socket_config[iListenSockIdx].sockfd, serv_ephe_port, 
-                sizeof(serv_ephe_port), 0, (SA *)pClientAddr, sizeof(*pClientAddr))<0) {
+    if (sendto(socket_config[iListenSockIdx].sockfd, serv_ephe_port, 
+                sizeof(serv_ephe_port), 0, (SA*)pClientAddr, sizeof(*pClientAddr))<0) {
         printf("sending error %s\n", strerror(errno));
     } else {
         printf("send ephemeral port number %s to client \n", serv_ephe_port);
@@ -172,61 +172,45 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     //Read(conn_sockfd, request_file, MAXLINE);
     printf("file name: %s\n", request_file);
 
-    FILE * prefiledp;
-    prefiledp=fopen(request_file, "r");
+    FILE* prefiledp;
+    prefiledp = fopen(request_file, "r");
 
-    if(prefiledp==NULL)
-    {
+    if (prefiledp == NULL) {
         printf("cannot open file!\n");
         exit(1);
-    }   
+    } 
 
-/*
-    char ch=fgetc(prefiledp);
-    while(ch!=EOF)
-    {
-        ch=fgetc(prefiledp);
-    }
-    printf("output is %s",ch);
-*/
-
-    struct payload serv_send_buf;
+    struct Payload send_buf;
     int data_charNum;
     int send_times;
 
-    ch=fgetc(prefiledp);
-    while(ch!=EOF)
-    {
-        data_charNum++;
-        ch=fgetc(prefiledp);
+    while (!feof(prefiledp)) {
+        int read_num = 0;
+        int send_flag = 1;
+        while (read_num < MAX_DATA_LEN - 1) {
+            char c = fgetc(prefiledp);
+            if (feof(prefiledp)) {
+                if (read_num == 1) {
+                    send_flag = 0;
+                } else {
+                    send_flag = 1;
+                }
+                break;
+            }
+            send_buf.data[read_num++] = c;
+        }
+        send_buf.data[read_num] = '\0';
+
+        if (send_flag) {
+            //send
+            sendto(conn_sockfd, send_buf.data, sizeof(send_buf.data), 0,
+                (SA*)pClientAddr, sizeof(*pClientAddr));
+            
+        }
+
+        //sendto(conn_sockfd, send_buf, sizeof(send_buf), 0,
+        //        (SA*)pClientAddr, sizeof(*pClientAddr));
     }
-
-    if(data_charNum%MAX_DATA_LEN==0)
-    {
-        send_times=data_charNum/MAX_DATA_LEN;
-    }
-    else
-    {
-        send_times=data_charNum/MAX_DATA_LEN+1;
-    }
-
-    for(int a=1; a<=send_times; a++)
-    {
-    fgets(serv_send_buf.data, MAX_DATA_LEN, prefiledp);
-    printf("%s",serv_send_buf.data);
-    sendto(conn_sockfd, serv_send_buf, SIZE_PAYLOAD, 0, (SA*)&cliaddr, &len_cliaddr );
-    }
-
-
-
-
-
-
-
-
-
-
-
 }
 
 void readConfig() {

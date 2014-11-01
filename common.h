@@ -1,14 +1,18 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-struct protHeader {
+struct ProtHeader {
 	unsigned int seqNum;
 	int ack;
 	int win;
 };
 
-struct payload {
-	struct protHeader;
-	byte data[MAX_DATA_LEN];
+
+struct Payload {
+	struct ProtHeader header;
+	//byte data[MAX_DATA_LEN];
+    char data[MAX_DATA_LEN];
 };
+
+
 #endif
