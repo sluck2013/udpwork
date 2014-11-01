@@ -202,14 +202,13 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
         send_buf.data[read_num] = '\0';
 
         if (send_flag) {
-            //send
-            sendto(conn_sockfd, send_buf.data, sizeof(send_buf.data), 0,
-                (SA*)pClientAddr, sizeof(*pClientAddr));
-            
+            //TODO: Set Header
+            send_buf.header.seqNum = 1;
+            send_buf.header.ack = 0;
+            send_buf.header.win = 0;
+            Sendto(conn_sockfd, &send_buf, sizeof(send_buf),
+                    0, (SA*)pClientAddr, sizeof(*pClientAddr));
         }
-
-        //sendto(conn_sockfd, send_buf, sizeof(send_buf), 0,
-        //        (SA*)pClientAddr, sizeof(*pClientAddr));
     }
 }
 

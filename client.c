@@ -204,10 +204,10 @@ void createUDPSocket() {
 
 void* receiveData(void *arg) {
     while (1) {
-        //struct Payload plReadBuf;
-        char x[MAX_DATA_LEN];
-        Read(((struct Arg*)arg)->sockfd, x, sizeof(x));
-        printf("%s", x);
+        struct Payload plReadBuf;
+        //char x[MAX_DATA_LEN];
+        Read(((struct Arg*)arg)->sockfd, &plReadBuf, sizeof(plReadBuf));
+        printf("%s", plReadBuf.data);
 fflush(stdout);
     }
     return NULL;
