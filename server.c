@@ -130,7 +130,7 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
 
     // get the ephemeral port number 
 
-    char serv_ephe_port[MAX_PORT_LEN];
+    char serv_ephe_port[PAYLOAD_SIZE];
     sprintf(serv_ephe_port, "%i", ntohs(conn_servaddr.sin_port));
     //printf("ephemeral port number is: %s\n", serv_ephe_port);
     
@@ -145,7 +145,6 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
         printf("send ephemeral port number %s to client \n", serv_ephe_port);
     }             
 
-     
      // close listening socket
     close(socket_config[iListenSockIdx].sockfd);
 
@@ -160,9 +159,6 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
         printf("cannot open file!\n");
         exit(1);
     } 
-
-
-    
 
     while (!feof(fileDp)) {
         int read_num = 0;
@@ -283,7 +279,8 @@ int isLocal(struct sockaddr_in *clientAddr) {
 }
 
 void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
-    for(int i=0; i< datagram_num; i++) {
-    Sendto(conn_sockfd, &send_buf[i], PAYLOAD_SIZE, 0, (SA *)pClientAddr, sizeof(* pClientAddr) );
+    for(int i = 0; i < datagram_num; i++) {
+        Sendto(conn_sockfd, &send_buf[i], sizeof(send_buf[i]), 0, (SA*)pClientAddr, sizeof(* pClientAddr) );
+        //Write(conn_sockfd, &send_buf[i], PAYLOAD_SIZE);
     }
 }
