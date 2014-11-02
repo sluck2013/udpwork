@@ -64,6 +64,7 @@ void listenSockets() {
             }
         }
 
+        printInfo("HERE");
         //check each interface to see if it can read and 
         //find the one that can read (num)
         for(int num = 0; num < iSockNum; ++num) {
@@ -86,6 +87,9 @@ void listenSockets() {
                     errQuit(ERR_FORK_FAIL);
                 } else if (pid == 0) {
                     handleRequest(num, &cliaddr,  request_file);
+                    return;
+                } else {
+                    printInfo("YB");
                 }
             }
         }
@@ -164,7 +168,7 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     if (isValidAck(&expAck, getSeqNum(&newPortPack))) {
         // close listening socket
         Close(socket_config[iListenSockIdx].sockfd);
-        printInfo("Listening socked closed\n"); fflush(stdout);
+        printInfo("Listening socked closed\n");
     }
     
     // transfer file
