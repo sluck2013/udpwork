@@ -14,6 +14,9 @@ struct socket_configuration socket_config[MAXSOCKET];
 int iSockNum;
 struct Payload send_buf[MAX_BUF_SIZE];
 int datagram_num = 0;
+static sigjmp_buf jmpbuf;
+int rttinit=0;
+static rtt_info rttinfo;
 
 int main(int argc, char *argv[]) 
 {
@@ -190,6 +193,30 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     sendData(conn_sockfd, pClientAddr);
     
 
+    // timeout mechanism
+        if(rttinit==0) {
+            rtt_init(&rttinfo);        //   first time we are called
+            rttinit=1;
+            rtt_d_flag=1;
+        }
+        signal(SIGALRM, sig_alrm);
+        rtt_newpack(&rttinfo);
+    sendagain:
+        //sendto();
+        alarm(rtt_start(&rttinfo));
+
+        if(sigsetjum(jumbuf, 1)!=0 )
+        {
+            printf(" timer expired\n");
+            if(rtt_timeout(&rttinfo) )
+            {
+                printf("time out and give up \n");
+            }
+            goto sendagain;
+        }
+
+
+
 }
 
 void readConfig() {
@@ -286,4 +313,17 @@ void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
         //Sendto(conn_sockfd, &send_buf[i], sizeof(send_buf[i]), 0, (SA*)pClientAddr, sizeof(*pClientAddr));
         write(conn_sockfd, &send_buf[i], PAYLOAD_SIZE);
     }
+}
+
+void sig_alrm(int signo) {
+    siglongjmp(jmpbuf, 1);
+}
+
+void sig_chld(int signo) {
+    pid_t pid;
+    int stat;          
+    while(  (pid=waitpid(-1, &stat, WNOHANG) ) > 0) {
+        printf("child %d terminated\n", pid);
+    }
+    return;
 }
