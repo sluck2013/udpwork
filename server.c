@@ -195,8 +195,7 @@ LSEND_PORT_AGAIN:
         }
 
 
-        // receive client's ack of getting ephemeral port number
-        // when the server receives ack, closes "listening socket"
+        // receive client's ack of getting ephemeral port number and when the server receives ack, closes "listening socket"
         while(1) {
             struct Payload expAck;
             Read(conn_sockfd, &expAck, sizeof(expAck));

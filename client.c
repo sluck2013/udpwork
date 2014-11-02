@@ -309,3 +309,13 @@ void getSleepTime(struct timespec* tm) {
 static void sig_alrm(int signo) {
     siglongjmp(jmpbuf, 1);
 }
+
+int dropIt() {
+    float r= drand48();
+    if ( r< config.pLoss) {
+        return 0;    // drop
+    }
+    else {
+        return 1;   // keep
+    }
+}
