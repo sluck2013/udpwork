@@ -80,7 +80,7 @@ rtt_start(struct rtt_info *ptr)
 void
 rtt_stop(struct rtt_info *ptr, uint32_t ms)
 {
-	double		delta;
+	uint32_t		delta;
 
 	ptr->rtt_rtt = ms / 1000.0;		/* measured RTT in seconds */
 
@@ -112,6 +112,7 @@ int
 rtt_timeout(struct rtt_info *ptr)
 {
 	ptr->rtt_rto *= 2;		/* next RTO */
+	ptr->rtt_rto=rtt_minmax(ptr->rtt_rto);
 
 	if (++ptr->rtt_nrexmt > RTT_MAXNREXMT)
 		return(-1);			/* time to give up for this packet */
