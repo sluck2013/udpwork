@@ -149,13 +149,53 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
 
     //send port to client
     struct Payload newPortPack;
+   
+    // timeout mechanism initialization
+    if(rttinit==0) {
+        rtt_init(&rttinfo);
+        rttinit=1;
+        rtt_d_flag=1;
+    }
+    signal(SIGALRM, sig_alrm);
+    rtt_newpack(&rttinfo);
     packData(&newPortPack, seqNum++, 0, server_config.server_win_size, 0, serv_ephe_port);
-    if (sendto(socket_config[iListenSockIdx].sockfd, &newPortPack,
+
+LSEND_PORT_AGAIN:
+        setPackTime(&newPortPack, rtt_ts(&rttinfo) );
+        //write(socket_config[iListenSockIdx].sockfd, &newPortPack, sizeof(newPortPack) );
+        if (sendto(socket_config[iListenSockIdx].sockfd, &newPortPack,
                 sizeof(newPortPack), 0, (SA*)pClientAddr, sizeof(*pClientAddr)) < 0) {
         printf("sending error %s\n", strerror(errno));
-    } else {
-        printf("send ephemeral port number %s to client \n", serv_ephe_port);
-    }             
+        } else {
+       printf("send ephemeral port number %s to client \n", serv_ephe_port);
+        }      
+        alarm(rtt_start(&rttinfo));
+
+        if (sigsetjmp(jmpbuf, 1) != 0) {
+            if (rtt_timeout(&rttinfo) < 0) {
+                printf("time out and give up \n");
+                // in the event of the server timing out, retransmit two copies to listening socket and connection socket
+                write(socket_config[iListenSockIdx].sockfd, &newPortPack, sizeof(newPortPack) );
+                write(conn_sockfd, &newPortPack, sizeof(newPortPack) );
+                rttinit = 0;
+            }
+            goto LSEND_PORT_AGAIN;
+        }
+
+        while(1) {
+            struct Payload ack;
+            struct sockaddr_in * clientAddr;
+            recvfrom(socket_config[iListenSockIdx].sockfd, &ack, sizeof(ack), 0, (SA*)clientAddr, sizeof(*clientAddr) );
+            if (isValidAck(&ack, getSeqNum(&newPortPack))) {
+                break;
+            }
+        }
+        alarm(0);          //stop timer
+
+        rtt_stop(&rttinfo, rtt_ts(&rttinfo) - getTimestamp(&newPortPack));
+    
+    printf("ephemeral port number transmission is ok \n");    
+
 
     printf("file name: %s\n", request_file);
     
