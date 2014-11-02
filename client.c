@@ -15,6 +15,7 @@ struct Config config;
 struct Payload plReadBuf[MAX_BUF_SIZE];
 unsigned long int iBufBase = 0;
 unsigned long int iBufEnd = 0;
+unsigned long int seqNum = 10;
 
 int main(int argc, char **argv) {
     readConfig();      // read client.in
@@ -193,14 +194,24 @@ void createUDPSocket() {
     Write(sockfd, config.dataFile, strlen(config.dataFile));
 
     // get server's "connection" socket port
-    char pcPort[MAX_PORT_LEN];
-    Read(sockfd, pcPort, MAX_PORT_LEN);
-    config.port = atoi(pcPort);
+    struct Payload rawNewPort;
+    Read(sockfd, &rawNewPort, sizeof(rawNewPort));
+    config.port = atoi(rawNewPort.data);
 
     //reconnect to "connection" socket
     siServerAddr.sin_port = htons(config.port);
     Connect(sockfd, (SA*)&siServerAddr, sizeof(siServerAddr));
-    printInfo("Reconnected to server"); // TODO: add addr.
+    char msg[MAXLINE];
+    sprintf(msg, "Reconnected to server at port %d", config.port);
+    printInfo(msg);
+
+    //send back ack
+    struct Payload newPortAck;
+    newAck(&newPortAck, seqNum++, rawNewPort.header.seqNum, min(
+               MAX_BUF_SIZE, config.recvWinSize
+               ), rawNewPort.header.timestamp
+          );
+    Write(sockfd, &newPortAck, sizeof(newPortAck));
 
     pthread_t tid;
     struct Arg arg;

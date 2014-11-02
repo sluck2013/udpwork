@@ -16,7 +16,7 @@ struct socket_configuration
 struct server_configuration
 {
     int server_port; 
-    int server_win_size;
+    short int server_win_size;
 };
 
 void readConfig();
