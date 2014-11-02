@@ -159,11 +159,11 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
 
     printf("file name: %s\n", request_file);
     
-    // close listening socket
     struct Payload expAck;
     Read(conn_sockfd, &expAck, sizeof(expAck));
     printf("deb: %d\n", expAck.header.flag);
-    if (expAck.header.flag == (1 << 7)) { //TODO : seqNum
+    if ( (expAck.header.flag &(1 << 7)== (1 << 7))&&(expAck.header.ackNum==newPortPack.header.seqNum) ){ //TODO : seqNum
+         // close listening socket
         Close(socket_config[iListenSockIdx].sockfd);
         printInfo("Listening socked closed\n"); fflush(stdout);
     }
@@ -325,7 +325,14 @@ void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
             goto sendagain;
         }
 
+            while(1)
+       {
             read(conn_sockfd, &send_buf[i], sizeof(send_buf[i]) );
+            if ( (send_buf[i].header.flag &(1 << 7)== (1 << 7))&&(send_buf[i].header.ackNum==send_buf[i].header.seqNum) )
+            {
+                break;
+            }
+       }
             alarm(0);          //stop timer
 
             rtt_stop(&rttinfo, rtt_ts(&rttinfo)- send_buf[i].header.timestamp);
