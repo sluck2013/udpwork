@@ -196,6 +196,7 @@ void createUDPSocket() {
     // get server's "connection" socket port
     struct Payload rawNewPort;
     Read(sockfd, &rawNewPort, sizeof(rawNewPort));
+    Read(sockfd, &rawNewPort, sizeof(rawNewPort));
     config.port = atoi(rawNewPort.data);
 
     //reconnect to "connection" socket

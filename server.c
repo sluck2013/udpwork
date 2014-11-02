@@ -179,7 +179,7 @@ LSEND_PORT_AGAIN:
             if (rtt_timeout(&rttinfo) < 0) {
                 printf("time out and give up \n");
                 // in the event of the server timing out, retransmit two copies to listening socket and connection socket
-                write(socket_config[iListenSockIdx].sockfd, &newPortPack, sizeof(newPortPack) );
+                setPackTime(&newPortPack, rtt_ts(&rttinfo) );
                 write(conn_sockfd, &newPortPack, sizeof(newPortPack) );
                 rttinit = 0;
             }
