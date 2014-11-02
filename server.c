@@ -161,9 +161,8 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     
     struct Payload expAck;
     Read(conn_sockfd, &expAck, sizeof(expAck));
-    printf("deb: %d\n", expAck.header.flag);
-    if ( (expAck.header.flag &(1 << 7)== (1 << 7))&&(expAck.header.ackNum==newPortPack.header.seqNum) ){ //TODO : seqNum
-         // close listening socket
+    if (isValidAck(&expAck, getSeqNum(&newPortPack))) {
+        // close listening socket
         Close(socket_config[iListenSockIdx].sockfd);
         printInfo("Listening socked closed\n"); fflush(stdout);
     }
@@ -296,46 +295,40 @@ int isLocal(struct sockaddr_in *clientAddr) {
 }
 
 void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
+    // timeout mechanism initialization
+    if(rttinit==0) {
+        rtt_init(&rttinfo);
+        rttinit=1;
+        rtt_d_flag=1;
+    }
+    signal(SIGALRM, sig_alrm);
+    rtt_newpack(&rttinfo);
+
     for(int i = 0; i < datagram_num; i++) {
-        //Sendto(conn_sockfd, &send_buf[i], sizeof(send_buf[i]), 0, (SA*)pClientAddr, sizeof(*pClientAddr));
-        //write(conn_sockfd, &send_buf[i], sizeof(send_buf[i]) );
-  
-        // timeout mechanism
-        if(rttinit==0) {
-            rtt_init(&rttinfo);        //   first time we are called
-            rttinit=1;
-            rtt_d_flag=1;
-        }
-        signal(SIGALRM, sig_alrm);
-        rtt_newpack(&rttinfo);    // initialize for this packet
-    sendagain:
-        //sendto()
+LSEND_AGAIN:
         setPackTime(&send_buf[i], rtt_ts(&rttinfo) );
         write(conn_sockfd, &send_buf[i], sizeof(send_buf[i]) );
 
         alarm(rtt_start(&rttinfo));
 
-        if(sigsetjmp(jmpbuf, 1)!=0 )
-        {
-            if(rtt_timeout(&rttinfo)<0 )
-            {
+        if (sigsetjmp(jmpbuf, 1) != 0) {
+            if (rtt_timeout(&rttinfo) < 0) {
                 printf("time out and give up \n");
-                rttinit=0;
+                rttinit = 0;
             }
-            goto sendagain;
+            goto LSEND_AGAIN;
         }
 
-            while(1)
-       {
-            read(conn_sockfd, &send_buf[i], sizeof(send_buf[i]) );
-            if ( (send_buf[i].header.flag &(1 << 7)== (1 << 7))&&(send_buf[i].header.ackNum==send_buf[i].header.seqNum) )
-            {
+        while(1) {
+            struct Payload ack;
+            read(conn_sockfd, &ack, sizeof(ack));
+            if (isValidAck(&ack, getSeqNum(&send_buf[i]))) {
                 break;
             }
-       }
-            alarm(0);          //stop timer
+        }
+        alarm(0);          //stop timer
 
-            rtt_stop(&rttinfo, rtt_ts(&rttinfo)- send_buf[i].header.timestamp);
+        rtt_stop(&rttinfo, rtt_ts(&rttinfo) - getTimestamp(&send_buf[i]));
     }
     printf("file transfer is ok till now\n");
 }

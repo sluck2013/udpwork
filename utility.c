@@ -79,6 +79,13 @@ void newAck(struct Payload* datagram, unsigned long int seqNum,
     setPackTime(datagram, timestamp);
 }
 
+unsigned long int getSeqNum(const struct Payload* datagram) {
+    return datagram->header.seqNum;
+}
+
+unsigned long int getTimestamp(const struct Payload *datagram) {
+    return datagram->header.timestamp;
+}
 ///////////////////for debug use///////////////:TODO
 void printAddrInfo(SA *addr) {
     struct sockaddr_in *si = (struct sockaddr_in*)addr;
