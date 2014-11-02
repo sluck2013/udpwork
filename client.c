@@ -191,14 +191,49 @@ void createUDPSocket() {
 
     Getpeername(sockfd, (SA*)&siForeignAddr, &slForeignLen);
     printSockInfo(&siForeignAddr, "Foreign");
-    Write(sockfd, config.dataFile, strlen(config.dataFile));
+    //Write(sockfd, config.dataFile, strlen(config.dataFile));
 
-    // get server's "connection" socket port
-    struct Payload rawNewPort;
-    Read(sockfd, &rawNewPort, sizeof(rawNewPort));
-    Read(sockfd, &rawNewPort, sizeof(rawNewPort));
-    config.port = atoi(rawNewPort.data);
+    // timeout mechanism initialization
+    struct Payload sendfileBuf;
+    
+    if(rttinit==0) {
+        rtt_init(&rttinfo);
+        rttinit=1;
+        rtt_d_flag=1;
+    }
+    signal(SIGALRM, sig_alrm);
+    rtt_newpack(&rttinfo);
+    packData(&sendfileBuf, seqNum++, 0, config.recvWinSize, 0, config.dataFile);      
 
+LSEND_FILENAME_AGAIN:
+        setPackTime(&sendfileBuf, rtt_ts(&rttinfo) );
+        Write(sockfd, &sendfileBuf, sizeof(sendfileBuf));
+        alarm(rtt_start(&rttinfo));
+
+        if (sigsetjmp(jmpbuf, 1) != 0) {
+            if (rtt_timeout(&rttinfo) < 0) {
+                printf("time out and give up \n");
+                rttinit = 0;
+            }
+            goto LSEND_FILENAME_AGAIN;
+        }
+
+        while(1) {
+            // get server's "connection" socket port
+            struct Payload rawNewPort;
+            Read(sockfd, &rawNewPort, sizeof(rawNewPort));
+            if (isValidAck(&rawNewPort, getSeqNum(&sendfileBuf))) {
+                config.port = atoi(rawNewPort.data);
+                break;
+            }
+        }
+        alarm(0);          //stop timer
+
+        rtt_stop(&rttinfo, rtt_ts(&rttinfo) - getTimestamp(&sendfileBuf));
+    
+    printf("file name transmission is ok \n");    
+
+    
     //reconnect to "connection" socket
     siServerAddr.sin_port = htons(config.port);
     Connect(sockfd, (SA*)&siServerAddr, sizeof(siServerAddr));
