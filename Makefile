@@ -23,7 +23,7 @@ get_ifi_info_plus.o: lib/get_ifi_info_plus.c
 	$(CC) $(FLAGS) -c lib/get_ifi_info_plus.c $(LIBS)
 prifinfo_plus.o: lib/prifinfo_plus.c
 	$(CC) $(FLAGS) -c lib/prifinfo_plus.c $(LIBS)
-rtt.o: lib/rtt.c unprtt.h
+rtt.o: lib/rtt.c 
 	$(CC) $(FLAGS) -c lib/rtt.c $(LIBS)
 
 clean:
