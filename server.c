@@ -71,10 +71,17 @@ void listenSockets() {
             if(FD_ISSET(socket_config[num].sockfd, &rset)) {
                 struct sockaddr_in cliaddr;
                 int len_cliaddr = sizeof(cliaddr);
-
+                
                 char request_file[MAXLINE];
+                /*
                 int n = recvfrom(socket_config[num].sockfd, request_file,
                      MAXLINE, 0, (SA*)&cliaddr, &len_cliaddr);
+                */
+
+                struct Payload recvfileBuf;                 
+                packData(&recvfileBuf, seqNum++, 0, server_config.server_win_size, 0, request_file); 
+                int n= read(socket_config[num].sockfd, &recvfileBuf, sizeof(recvfileBuf));
+
                 if (n < 0) {
                     printf("num:%d\n",num);
                     printf("%s\n", strerror(errno));
@@ -200,9 +207,9 @@ LSEND_PORT_AGAIN:
         rtt_stop(&rttinfo, rtt_ts(&rttinfo) - getTimestamp(&newPortPack));
     
     printf("ephemeral port number transmission is ok \n");    
-    printf("file name: %s\n", request_file);
-    
+
     // transfer file
+    printf("file name: %s\n", request_file);
     FILE* fileDp;
     fileDp = fopen(request_file, "r");
 

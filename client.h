@@ -32,5 +32,7 @@ int isLocal(struct ifi_info* ifiHead, struct ifi_info **ifiMatch);
 inline int getPrefixLen(uint32_t a, uint32_t b);
 void* printData(void *arg);
 void getSleepTime(struct timespec* tm);
+static void sig_alrm(int signo);
+void sig_chld(int signo);
 
 #endif

@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include<setjmp.h>
+#include "lib/unprtt.h"
 #include "client.h"
 #include "constants.h"
 #include "utility.h"
@@ -11,11 +13,15 @@
 #include "common.h"
 
 
+
 struct Config config;
 struct Payload plReadBuf[MAX_BUF_SIZE];
 unsigned long int iBufBase = 0;
 unsigned long int iBufEnd = 0;
 unsigned long int seqNum = 10;
+static sigjmp_buf jmpbuf;
+int rttinit=0;
+static struct rtt_info rttinfo;
 
 int main(int argc, char **argv) {
     readConfig();      // read client.in
@@ -194,7 +200,7 @@ void createUDPSocket() {
     //Write(sockfd, config.dataFile, strlen(config.dataFile));
 
 
-    // timeout mechanism initialization
+    // timeout mechanism initialization for file name transfer to server
     struct Payload sendfileBuf;
     
     if(rttinit==0) {
@@ -219,15 +225,11 @@ LSEND_FILENAME_AGAIN:
             goto LSEND_FILENAME_AGAIN;
         }
 
-    // get server's "connection" socket port
-    //struct Payload rawNewPort;
-    //Read(sockfd, &rawNewPort, sizeof(rawNewPort));
-    //config.port = atoi(rawNewPort.data);
-
-
+    struct Payload rawNewPort;
+   
         while(1) {
-            // get server's "connection" socket port
-            struct Payload rawNewPort;
+            /* get server's "connection" socket port*/
+            //struct Payload rawNewPort;
             Read(sockfd, &rawNewPort, sizeof(rawNewPort));
             if (isValidAck(&rawNewPort, getSeqNum(&sendfileBuf))) {
                 config.port = atoi(rawNewPort.data);
@@ -302,4 +304,8 @@ void getSleepTime(struct timespec* tm) {
     int iMilliSec = -(int)f;
     tm->tv_sec = iMilliSec / 1000;
     tm->tv_nsec = iMilliSec % 1000 * 1000000;
+}
+
+static void sig_alrm(int signo) {
+    siglongjmp(jmpbuf, 1);
 }
