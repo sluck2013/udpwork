@@ -169,9 +169,9 @@ LSEND_PORT_AGAIN:
         //write(socket_config[iListenSockIdx].sockfd, &newPortPack, sizeof(newPortPack) );
         if (sendto(socket_config[iListenSockIdx].sockfd, &newPortPack,
                 sizeof(newPortPack), 0, (SA*)pClientAddr, sizeof(*pClientAddr)) < 0) {
-        printf("sending error %s\n", strerror(errno));
+            printf("sending error %s\n", strerror(errno));
         } else {
-       printf("send ephemeral port number %s to client \n", serv_ephe_port);
+            printf("send ephemeral port number %s to client \n", serv_ephe_port);
         }      
         alarm(rtt_start(&rttinfo));
 
@@ -187,10 +187,11 @@ LSEND_PORT_AGAIN:
         }
 
         while(1) {
-            struct Payload ack;
-            struct sockaddr_in * clientAddr;
-            recvfrom(socket_config[iListenSockIdx].sockfd, &ack, sizeof(ack), 0, (SA*)clientAddr, sizeof(*clientAddr) );
-            if (isValidAck(&ack, getSeqNum(&newPortPack))) {
+            struct Payload expAck;
+            Read(conn_sockfd, &expAck, sizeof(expAck));
+            if (isValidAck(&expAck, getSeqNum(&newPortPack))) {
+                Close(socket_config[iListenSockIdx].sockfd);
+                printInfo("Listening socked closed\n");
                 break;
             }
         }
@@ -199,17 +200,7 @@ LSEND_PORT_AGAIN:
         rtt_stop(&rttinfo, rtt_ts(&rttinfo) - getTimestamp(&newPortPack));
     
     printf("ephemeral port number transmission is ok \n");    
-
-
     printf("file name: %s\n", request_file);
-    
-    struct Payload expAck;
-    Read(conn_sockfd, &expAck, sizeof(expAck));
-    if (isValidAck(&expAck, getSeqNum(&newPortPack))) {
-        // close listening socket
-        Close(socket_config[iListenSockIdx].sockfd);
-        printInfo("Listening socked closed\n");
-    }
     
     // transfer file
     FILE* fileDp;

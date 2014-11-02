@@ -196,7 +196,6 @@ void createUDPSocket() {
     // get server's "connection" socket port
     struct Payload rawNewPort;
     Read(sockfd, &rawNewPort, sizeof(rawNewPort));
-    Read(sockfd, &rawNewPort, sizeof(rawNewPort));
     config.port = atoi(rawNewPort.data);
 
     //reconnect to "connection" socket
@@ -208,7 +207,7 @@ void createUDPSocket() {
 
     //send back ack
     struct Payload newPortAck;
-    newAck(&newPortAck, seqNum++, rawNewPort.header.seqNum, min(
+    newAck(&newPortAck, seqNum++, getSeqNum(&rawNewPort), min(
                MAX_BUF_SIZE, config.recvWinSize
                ), rawNewPort.header.timestamp
           );
@@ -223,7 +222,7 @@ void createUDPSocket() {
         Read(sockfd, &plReadBuf[iBufEnd], sizeof(plReadBuf[iBufEnd]));
         struct Payload ack;
         //TODO:
-        newAck(&ack, seqNum++, plReadBuf[iBufEnd].header.seqNum, 0, plReadBuf[iBufEnd].header.timestamp);
+        newAck(&ack, seqNum++, plReadBuf[iBufEnd].header.seqNum, 0, getTimestamp(&plReadBuf[iBufEnd]));
         Write(sockfd, &ack, sizeof(ack));
         ++iBufEnd;
         if (iBufEnd > MAX_BUF_SIZE) {
