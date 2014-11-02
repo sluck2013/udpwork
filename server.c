@@ -198,7 +198,7 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
 
         if (write_flag) {
             //TODO:
-            packData(&send_buf[datagram_num++], 1, 1, 1, 1, cBuf);
+            packData(&send_buf[datagram_num++], seqNum, 0, 1, 0, cBuf);
         }
     }
 

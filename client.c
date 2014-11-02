@@ -220,6 +220,10 @@ void createUDPSocket() {
     Pthread_create(&tid, NULL, printData, NULL);
     while (1) {
         Read(sockfd, &plReadBuf[iBufEnd], sizeof(plReadBuf[iBufEnd]));
+        struct Payload ack;
+        //TODO:
+        newAck(&ack, seqNum++, plReadBuf[iBufEnd].header.seqNum, 0, plReadBuf[iBufEnd].header.timestamp);
+        Write(sockfd, &ack, sizeof(ack));
         ++iBufEnd;
         if (iBufEnd > MAX_BUF_SIZE) {
             printErr(ERR_READ_BUF_OVERFLOW);
