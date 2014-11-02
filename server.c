@@ -16,9 +16,6 @@ int iSockNum;
 struct Payload send_buf[MAX_BUF_SIZE];
 int datagram_num = 0;
 
-static sigjmp_buf jmpbuf;
-int rttinit=0;
-static struct rtt_info rttinfo;
 
 unsigned long int seqNum = 5;
 
@@ -295,6 +292,10 @@ int isLocal(struct sockaddr_in *clientAddr) {
 }
 
 void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
+    static sigjmp_buf jmpbuf;
+    int rttinit=0;
+    static struct rtt_info rttinfo;
+
     // timeout mechanism initialization
     if(rttinit==0) {
         rtt_init(&rttinfo);
