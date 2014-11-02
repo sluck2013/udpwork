@@ -20,4 +20,7 @@ void newAck(struct Payload* datagram, unsigned long int seqNum,
         unsigned long int timestamp);
 void setPackTime(struct Payload *datagram, unsigned long int timestamp);
 
+
+////////////for debug///////:TODO
+void printAddrInfo(SA* addr);
 #endif

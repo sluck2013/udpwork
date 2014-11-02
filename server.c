@@ -75,6 +75,8 @@ void listenSockets() {
                 int n = recvfrom(socket_config[num].sockfd, request_file,
                      MAXLINE, 0, (SA*)&cliaddr, &len_cliaddr);
                 if (n < 0) {
+                    printf("num:%d\n",num);
+                    printf("%s\n", strerror(errno));
                     errQuit(ERR_READ_DATA_FROM_CLI);
                 }
 
@@ -84,7 +86,6 @@ void listenSockets() {
                     errQuit(ERR_FORK_FAIL);
                 } else if (pid == 0) {
                     handleRequest(num, &cliaddr,  request_file);
-
                 }
             }
         }
@@ -125,7 +126,8 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     bzero(&conn_servaddr, sizeof(conn_servaddr));
     conn_servaddr.sin_family = AF_INET;
     conn_servaddr.sin_port = htons(0);
-    conn_servaddr.sin_addr = pClientAddr->sin_addr;
+    //conn_servaddr.sin_addr = pClientAddr->sin_addr;
+    conn_servaddr.sin_addr = socket_config[iListenSockIdx].ip;
 
     Bind(conn_sockfd, (SA*)&conn_servaddr, sizeof(conn_servaddr));
 
@@ -159,13 +161,14 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     
     // close listening socket
     struct Payload expAck;
-    read(socket_config[iListenSockIdx].sockfd, &expAck, sizeof(expAck));
+    Read(conn_sockfd, &expAck, sizeof(expAck));
+    printf("deb: %d\n", expAck.header.flag);
     if (expAck.header.flag == (1 << 7)) { //TODO : seqNum
-        close(socket_config[iListenSockIdx].sockfd);
+        Close(socket_config[iListenSockIdx].sockfd);
+        printInfo("Listening socked closed\n"); fflush(stdout);
     }
-
+    
     // transfer file
-    //Read(conn_sockfd, request_file, MAXLINE);
     FILE* fileDp;
     fileDp = fopen(request_file, "r");
 
@@ -199,8 +202,6 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
         }
     }
 
-
-    //function call sendData();
     sendData(conn_sockfd, pClientAddr);
 
 }

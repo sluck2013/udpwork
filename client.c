@@ -220,8 +220,6 @@ void createUDPSocket() {
     Pthread_create(&tid, NULL, printData, NULL);
     while (1) {
         Read(sockfd, &plReadBuf[iBufEnd], sizeof(plReadBuf[iBufEnd]));
-        printf("%s", plReadBuf[iBufEnd].data);//TODO:delete
-        fflush(stdout);
         ++iBufEnd;
         if (iBufEnd > MAX_BUF_SIZE) {
             printErr(ERR_READ_BUF_OVERFLOW);
@@ -249,6 +247,7 @@ void* printData(void *arg) {
 
 void getSleepTime(struct timespec* tm) {
     //TODO: turn on rand!!!
+    //seed48(config.seed);
     //double r = drand48();
     //printf("%F\n", r);
     double r = 0.45;
