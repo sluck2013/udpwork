@@ -27,6 +27,11 @@ void printInfo(char* info) {
     printItem("INFO", info);
 }
 
+void printInfoIntItem(char* item, int info) {
+    printf("%s: %d\n", item, info);
+    fflush(stdout);
+}
+
 void printIfiInfo(struct ifi_info* ifi) {
     struct sockaddr *sa = ifi->ifi_addr;
     //printItem("Interface name", ifi->ifi_name);
@@ -85,6 +90,14 @@ unsigned long int getSeqNum(const struct Payload* datagram) {
 
 unsigned long int getTimestamp(const struct Payload *datagram) {
     return datagram->header.timestamp;
+}
+
+unsigned long int getAckNum(const struct Payload* datagram) {
+    return datagram->header.ackNum;
+}
+
+unsigned long int getWinSize(const struct Payload* datagram) {
+    return datagram->header.winSize;
 }
 ///////////////////for debug use///////////////:TODO
 void printAddrInfo(SA *addr) {

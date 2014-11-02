@@ -1,3 +1,6 @@
+#ifndef SERVER_H
+#define SERVER_H
+
 #include <math.h>
 #include <stdlib.h>
 #include "unp.h"
@@ -31,3 +34,4 @@ void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr);
 static void sig_alrm(int signo);
 void sig_chld(int signo);
 
+#endif

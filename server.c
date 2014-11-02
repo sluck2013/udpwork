@@ -14,6 +14,7 @@ struct server_configuration server_config;
 struct socket_configuration socket_config[MAXSOCKET];
 int iSockNum;
 struct Payload send_buf[MAX_BUF_SIZE];
+unsigned char recvd_ack[MAX_BUF_SIZE];
 int datagram_num = 0;
 
 static sigjmp_buf jmpbuf;
@@ -96,8 +97,6 @@ void listenSockets() {
                 } else if (pid == 0) {
                     handleRequest(num, &cliaddr,  request_file);
                     return;
-                } else {
-                    printInfo("YB");
                 }
             }
         }
@@ -241,8 +240,7 @@ LSEND_PORT_AGAIN:
         cBuf[read_num] = '\0';
 
         if (write_flag) {
-            //TODO:
-            packData(&send_buf[datagram_num++], seqNum, 0, 1, 0, cBuf);
+            packData(&send_buf[datagram_num++], seqNum++, 0, server_config.server_win_size, 0, cBuf);
         }
     }
 
@@ -341,39 +339,68 @@ int isLocal(struct sockaddr_in *clientAddr) {
 
 void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
     // timeout mechanism initialization
-    if(rttinit==0) {
+    if (rttinit == 0) {
         rtt_init(&rttinfo);
-        rttinit=1;
-        rtt_d_flag=1;
+        rttinit = 1;
+        rtt_d_flag = 1;
     }
     signal(SIGALRM, sig_alrm);
     rtt_newpack(&rttinfo);
 
-    for(int i = 0; i < datagram_num; i++) {
-LSEND_AGAIN:
-        setPackTime(&send_buf[i], rtt_ts(&rttinfo) );
-        write(conn_sockfd, &send_buf[i], sizeof(send_buf[i]) );
-
-        alarm(rtt_start(&rttinfo));
-
-        if (sigsetjmp(jmpbuf, 1) != 0) {
-            if (rtt_timeout(&rttinfo) < 0) {
-                printf("time out and give up \n");
-                rttinit = 0;
+    int iBufBase = 0;
+    int iBufEnd = 0;
+    int iClientBufFull = 0;
+    while (iBufBase < datagram_num) {
+        if (!iClientBufFull) {
+            alarm(rtt_start(&rttinfo));
+            if (sigsetjmp(jmpbuf, 1) != 0) {
+                if (rtt_timeout(&rttinfo) < 0) {
+                    printf("time out and give up \n");
+                    rttinit = 0;
+                }
+                //time out
             }
-            goto LSEND_AGAIN;
+
+            for(int i = iBufBase, j = 0; i < datagram_num && j < server_config.server_win_size; ++i, ++j) {
+                if (recvd_ack[i]) {
+                    continue;
+                }
+                setPackTime(&send_buf[i], rtt_ts(&rttinfo) );
+                write(conn_sockfd, &send_buf[i], sizeof(send_buf[i]));
+                ++iBufEnd;
+            }
         }
 
-        while(1) {
+        while(iBufBase < iBufEnd) {
             struct Payload ack;
             read(conn_sockfd, &ack, sizeof(ack));
-            if (isValidAck(&ack, getSeqNum(&send_buf[i]))) {
-                break;
+            if (isValidAck(&ack, 0)) {
+                int idx = getAckIdx(&ack, iBufBase);
+                if (idx >= iBufEnd || idx < iBufBase) {
+                    continue;
+                }
+                recvd_ack[idx] = 1;
+                unsigned long int ackTime = rtt_ts(&rttinfo);
+                unsigned long int timeDelta = ackTime - getTimestamp(&send_buf[idx]);
+                rtt_stop(&rttinfo, timeDelta);
+                if (idx == iBufBase) {
+                    while (recvd_ack[iBufBase]) {
+                        ++iBufBase;
+                    }
+                    /* set new alarm on each ack receipt */
+                    unsigned long int iElapsed = ackTime - getTimestamp(&send_buf[iBufBase]);
+                    unsigned long int iNewDur = rtt_start(&rttinfo);
+                    alarm(iNewDur > iElapsed ? iNewDur - iElapsed : 1);
+                }
+                int iRecvWinSize = getWinSize(&ack);
+                printInfoIntItem("receiver's window size", iRecvWinSize);
+                if (getWinSize(&ack) == 0) {
+                    iClientBufFull = 1;
+                }
             }
         }
-        alarm(0);          //stop timer
-
-        rtt_stop(&rttinfo, rtt_ts(&rttinfo) - getTimestamp(&send_buf[i]));
+        
+        alarm(0);
     }
     printf("file transfer is ok till now\n");
 }
@@ -389,4 +416,9 @@ void sig_chld(int signo) {
         printf("child %d terminated\n", pid);
     }
     return;
+}
+
+int getAckIdx(const struct Payload* ack, int iBufBase) {
+    int iOffset = getAckNum(ack) - getSeqNum(&send_buf[iBufBase]);
+    return iBufBase + iOffset;
 }

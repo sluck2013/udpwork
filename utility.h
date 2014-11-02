@@ -10,6 +10,7 @@ void errQuit(char *errMsg);
 void printItem(const char* key, const char* value);
 void println();
 void printInfo(char *info);
+void printInfoIntItem(char* item, int info);
 void printIfiInfo(struct ifi_info* ifi);
 void printSockInfo(struct sockaddr_in* addr, char* addrName);
 void packData(struct Payload* datagram, unsigned long int seqNum, 
@@ -20,8 +21,11 @@ void newAck(struct Payload* datagram, unsigned long int seqNum,
         unsigned long int timestamp);
 void setPackTime(struct Payload *datagram, unsigned long int timestamp);
 inline int isValidAck(const struct Payload* ack, unsigned long int seqNum) {
-    return (ack->header.flag && (1 << 7) == (1 << 7) &&
-            ack->header.ackNum == seqNum);
+    int r = ((ack->header.flag & (1 << 7)) == (1 << 7));
+    if (seqNum != 0) {
+        r = r && (ack->header.ackNum == seqNum);
+    }
+    return r;
 }
 
 
