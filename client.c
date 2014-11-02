@@ -250,7 +250,7 @@ LSEND_FILENAME_AGAIN:
     sprintf(msg, "Reconnected to server at port %d", config.port);
     printInfo(msg);
 
-    //send back ack
+    //send back ack of getting ephemeral port number
     struct Payload newPortAck;
     newAck(&newPortAck, seqNum++, getSeqNum(&rawNewPort), min(
                MAX_BUF_SIZE, config.recvWinSize

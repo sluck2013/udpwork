@@ -78,6 +78,7 @@ void listenSockets() {
                      MAXLINE, 0, (SA*)&cliaddr, &len_cliaddr);
                 */
 
+                // receive file name
                 struct Payload recvfileBuf;                 
                 packData(&recvfileBuf, seqNum++, 0, server_config.server_win_size, 0, request_file); 
                 int n= read(socket_config[num].sockfd, &recvfileBuf, sizeof(recvfileBuf));
@@ -161,7 +162,7 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     //send port to client
     struct Payload newPortPack;
    
-    // timeout mechanism initialization
+    // timeout mechanism initialization for server sending ephemeral port number
     if(rttinit==0) {
         rtt_init(&rttinfo);
         rttinit=1;
@@ -193,6 +194,9 @@ LSEND_PORT_AGAIN:
             goto LSEND_PORT_AGAIN;
         }
 
+
+        // receive client's ack of getting ephemeral port number
+        // when the server receives ack, closes "listening socket"
         while(1) {
             struct Payload expAck;
             Read(conn_sockfd, &expAck, sizeof(expAck));
