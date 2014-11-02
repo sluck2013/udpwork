@@ -8,6 +8,7 @@
 #include <setjmp.h>
 #include <math.h>
 #include "common.h"
+#include <time.h> 
 
 struct server_configuration server_config;
 struct socket_configuration socket_config[MAXSOCKET];
@@ -17,7 +18,7 @@ int datagram_num = 0;
 
 static sigjmp_buf jmpbuf;
 int rttinit=0;
-static rtt_info rttinfo;
+static struct rtt_info rttinfo;
 
 unsigned long int seqNum = 5;
 
@@ -201,31 +202,6 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
 
     //function call sendData();
     sendData(conn_sockfd, pClientAddr);
-    
-
-    // timeout mechanism
-        if(rttinit==0) {
-            rtt_init(&rttinfo);        //   first time we are called
-            rttinit=1;
-            rtt_d_flag=1;
-        }
-        signal(SIGALRM, sig_alrm);
-        rtt_newpack(&rttinfo);
-    sendagain:
-        //sendto();
-        alarm(rtt_start(&rttinfo));
-
-        if(sigsetjum(jumbuf, 1)!=0 )
-        {
-            printf(" timer expired\n");
-            if(rtt_timeout(&rttinfo) )
-            {
-                printf("time out and give up \n");
-            }
-            goto sendagain;
-        }
-
-
 
 }
 
@@ -321,11 +297,42 @@ int isLocal(struct sockaddr_in *clientAddr) {
 void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
     for(int i = 0; i < datagram_num; i++) {
         //Sendto(conn_sockfd, &send_buf[i], sizeof(send_buf[i]), 0, (SA*)pClientAddr, sizeof(*pClientAddr));
-        write(conn_sockfd, &send_buf[i], PAYLOAD_SIZE);
+        //write(conn_sockfd, &send_buf[i], sizeof(send_buf[i]) );
+  
+        // timeout mechanism
+        if(rttinit==0) {
+            rtt_init(&rttinfo);        //   first time we are called
+            rttinit=1;
+            rtt_d_flag=1;
+        }
+        signal(SIGALRM, sig_alrm);
+        rtt_newpack(&rttinfo);    // initialize for this packet
+    sendagain:
+        //sendto()
+        setPackTime(&send_buf[i], rtt_ts(&rttinfo) );
+        write(conn_sockfd, &send_buf[i], sizeof(send_buf[i]) );
+
+        alarm(rtt_start(&rttinfo));
+
+        if(sigsetjmp(jmpbuf, 1)!=0 )
+        {
+            if(rtt_timeout(&rttinfo)<0 )
+            {
+                printf("time out and give up \n");
+                rttinit=0;
+            }
+            goto sendagain;
+        }
+
+            read(conn_sockfd, &send_buf[i], sizeof(send_buf[i]) );
+            alarm(0);          //stop timer
+
+            rtt_stop(&rttinfo, rtt_ts(&rttinfo)- send_buf[i].header.timestamp);
     }
+    printf("file transfer is ok till now\n");
 }
 
-void sig_alrm(int signo) {
+static void sig_alrm(int signo) {
     siglongjmp(jmpbuf, 1);
 }
 
