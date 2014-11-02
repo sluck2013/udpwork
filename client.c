@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include<setjmp.h>
+#include "lib/unprtt.h"
 #include "client.h"
 #include "constants.h"
 #include "utility.h"
@@ -11,11 +13,15 @@
 #include "common.h"
 
 
+
 struct Config config;
 struct Payload plReadBuf[MAX_BUF_SIZE];
 unsigned long int iBufBase = 0;
 unsigned long int iBufEnd = 0;
 unsigned long int seqNum = 10;
+static sigjmp_buf jmpbuf;
+int rttinit=0;
+static struct rtt_info rttinfo;
 
 pthread_mutex_t iBufBase_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t iBufEnd_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -199,13 +205,52 @@ void createUDPSocket() {
 
     Getpeername(sockfd, (SA*)&siForeignAddr, &slForeignLen);
     printSockInfo(&siForeignAddr, "Foreign");
-    Write(sockfd, config.dataFile, strlen(config.dataFile));
+    //Write(sockfd, config.dataFile, strlen(config.dataFile));
 
-    // get server's "connection" socket port
+
+    // timeout mechanism initialization for file name transfer to server
+    struct Payload sendfileBuf;
+    
+    if(rttinit==0) {
+        rtt_init(&rttinfo);
+        rttinit=1;
+        rtt_d_flag=1;
+    }
+    signal(SIGALRM, sig_alrm);
+    rtt_newpack(&rttinfo);
+    packData(&sendfileBuf, seqNum++, 0, config.recvWinSize, 0, config.dataFile);      
+
+LSEND_FILENAME_AGAIN:
+        setPackTime(&sendfileBuf, rtt_ts(&rttinfo) );
+        Write(sockfd, &sendfileBuf, sizeof(sendfileBuf));
+        alarm(rtt_start(&rttinfo));
+
+        if (sigsetjmp(jmpbuf, 1) != 0) {
+            if (rtt_timeout(&rttinfo) < 0) {
+                printf("time out and give up \n");
+                rttinit = 0;
+            }
+            goto LSEND_FILENAME_AGAIN;
+        }
+
     struct Payload rawNewPort;
-    Read(sockfd, &rawNewPort, sizeof(rawNewPort));
-    config.port = atoi(rawNewPort.data);
+   
+        while(1) {
+            /* get server's "connection" socket port*/
+            //struct Payload rawNewPort;
+            Read(sockfd, &rawNewPort, sizeof(rawNewPort));
+            if (isValidAck(&rawNewPort, getSeqNum(&sendfileBuf))) {
+                config.port = atoi(rawNewPort.data);
+                break;
+            }
+        }
+        alarm(0);          //stop timer
 
+        rtt_stop(&rttinfo, rtt_ts(&rttinfo) - getTimestamp(&sendfileBuf));
+    
+    printf("file name transmission is ok \n");    
+
+    
     //reconnect to "connection" socket
     siServerAddr.sin_port = htons(config.port);
     Connect(sockfd, (SA*)&siServerAddr, sizeof(siServerAddr));
@@ -213,7 +258,7 @@ void createUDPSocket() {
     sprintf(msg, "Reconnected to server at port %d", config.port);
     printInfo(msg);
 
-    //send back ack
+    //send back ack of getting ephemeral port number
     struct Payload newPortAck;
     newAck(&newPortAck, seqNum++, getSeqNum(&rawNewPort), min(
                MAX_BUF_SIZE, config.recvWinSize
@@ -316,4 +361,8 @@ void getSleepTime(struct timespec* tm) {
     int iMilliSec = -(int)f;
     tm->tv_sec = iMilliSec / 1000;
     tm->tv_nsec = iMilliSec % 1000 * 1000000;
+}
+
+static void sig_alrm(int signo) {
+    siglongjmp(jmpbuf, 1);
 }

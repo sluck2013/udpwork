@@ -20,6 +20,13 @@ void newAck(struct Payload* datagram, unsigned long int seqNum,
         unsigned long int ackNum, unsigned short int winSize,
         unsigned long int timestamp);
 void setPackTime(struct Payload *datagram, unsigned long int timestamp);
+inline int isValidAck(const struct Payload* ack, unsigned long int seqNum) {
+    int r = ((ack->header.flag & (1 << 7)) == (1 << 7));
+    if (seqNum != 0) {
+        r = r && (ack->header.ackNum == seqNum);
+    }
+    return r;
+}
 
 
 ////////////for debug///////:TODO
