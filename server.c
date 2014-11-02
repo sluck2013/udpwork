@@ -69,6 +69,8 @@ void listenSockets() {
                 int n = recvfrom(socket_config[num].sockfd, request_file,
                      MAXLINE, 0, (SA*)&cliaddr, &len_cliaddr);
                 if (n < 0) {
+                    printf("num:%d\n",num);
+                    printf("%s\n", strerror(errno));
                     errQuit(ERR_READ_DATA_FROM_CLI);
                 }
 
@@ -78,7 +80,6 @@ void listenSockets() {
                     errQuit(ERR_FORK_FAIL);
                 } else if (pid == 0) {
                     handleRequest(num, &cliaddr,  request_file);
-
                 }
             }
         }
@@ -154,11 +155,13 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     
     // close listening socket
     struct Payload expAck;
-    Read(socket_config[iListenSockIdx].sockfd, &expAck, sizeof(expAck));
+    Read(conn_sockfd, &expAck, sizeof(expAck));
+    printf("deb: %d\n", expAck.header.flag);
     if (expAck.header.flag == (1 << 7)) { //TODO : seqNum
         Close(socket_config[iListenSockIdx].sockfd);
+        printInfo("Listening socked closed\n"); fflush(stdout);
     }
-
+    
     // transfer file
     FILE* fileDp;
     fileDp = fopen(request_file, "r");
@@ -287,7 +290,6 @@ int isLocal(struct sockaddr_in *clientAddr) {
 
 void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
     for(int i = 0; i < datagram_num; i++) {
-        Sendto(conn_sockfd, &send_buf[i], sizeof(send_buf[i]), 0, (SA*)pClientAddr, sizeof(*pClientAddr));
-        //Write(conn_sockfd, &send_buf[i], PAYLOAD_SIZE);
+        Write(conn_sockfd, &send_buf[i], sizeof(send_buf[i]));
     }
 }

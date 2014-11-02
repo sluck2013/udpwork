@@ -63,6 +63,7 @@ void packData(struct Payload* datagram, unsigned long int seqNum,
     datagram->header.timestamp = 0;
     datagram->header.ackNum = ackNum;
     datagram->header.winSize = winSize;
+    datagram->header.flag = flag;
     strcpy(datagram->data, data);
 }
 
@@ -76,4 +77,13 @@ void newAck(struct Payload* datagram, unsigned long int seqNum,
     unsigned char flag = 1 << 7;
     packData(datagram, seqNum, ackNum, winSize, flag, " ");
     setPackTime(datagram, timestamp);
+}
+
+///////////////////for debug use///////////////:TODO
+void printAddrInfo(SA *addr) {
+    struct sockaddr_in *si = (struct sockaddr_in*)addr;
+    int port = ntohs(si->sin_port);
+    char* ip = Sock_ntop_host(addr, sizeof(*addr));
+    printf("DEBUG: %s:%d\n", ip, port);
+    fflush(stdout);
 }
