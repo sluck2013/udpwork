@@ -93,7 +93,9 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     }
 
     /* if the client is local,use SO_DONTROUTE socket option */
-    const int on = 1;
+    int on = 1;
+    //char = 1;
+    //TODO: uncomment
     if(isLocal(pClientAddr)) {
         printf("Client host is local\n");
         if(setsockopt(socket_config[iListenSockIdx].sockfd, 
@@ -132,7 +134,6 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
 
     char serv_ephe_port[PAYLOAD_SIZE];
     sprintf(serv_ephe_port, "%i", ntohs(conn_servaddr.sin_port));
-    //printf("ephemeral port number is: %s\n", serv_ephe_port);
     
     printSockInfo(&conn_servaddr, "Local");
 
@@ -218,6 +219,8 @@ void readConfig() {
 void bindSockets() {
     int count = 0;
     const int on = 1;
+    //const char on = '1'
+    //TODO:Uncomment Solaris
 
     struct sockaddr_in *sa, *sinptr;  //IP address and network mask for the IP address
 
@@ -280,7 +283,7 @@ int isLocal(struct sockaddr_in *clientAddr) {
 
 void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
     for(int i = 0; i < datagram_num; i++) {
-        Sendto(conn_sockfd, &send_buf[i], sizeof(send_buf[i]), 0, (SA*)pClientAddr, sizeof(* pClientAddr) );
-        //Write(conn_sockfd, &send_buf[i], PAYLOAD_SIZE);
+        //Sendto(conn_sockfd, &send_buf[i], sizeof(send_buf[i]), 0, (SA*)pClientAddr, sizeof(*pClientAddr));
+        write(conn_sockfd, &send_buf[i], PAYLOAD_SIZE);
     }
 }

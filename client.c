@@ -209,6 +209,8 @@ void createUDPSocket() {
     Pthread_create(&tid, NULL, printData, NULL);
     while (1) {
         Read(sockfd, &plReadBuf[iBufEnd], sizeof(plReadBuf[iBufEnd]));
+        printf("%s", plReadBuf[iBufEnd].data);//TODO:delete
+        fflush(stdout);
         ++iBufEnd;
         if (iBufEnd > MAX_BUF_SIZE) {
             printErr(ERR_READ_BUF_OVERFLOW);

@@ -13,8 +13,8 @@ client: client.o  utility.o get_ifi_info_plus.o
 	$(CC) $(CFLAGS) -o client client.o utility.o $(LIBS) -lm 
 client.o: client.c client.h constants.h get_ifi_info_plus.o
 	$(CC) $(FLAGS) -c client.c get_ifi_info_plus.o $(LIBS)
-server: server.o utility.o
-	$(CC) $(CFLAGS) -o server server.o utility.o $(LIBS)
+server: server.o utility.o rtt.o
+	$(CC) $(CFLAGS) -o server server.o utility.o rtt.o $(LIBS)
 server.o: server.c server.h constants.h lib/unprtt.h lib/unpifiplus.h get_ifi_info_plus.o
 	$(CC) $(FLAGS) -c server.c get_ifi_info_plus.o $(LIBS)
 utility.o: utility.c utility.h lib/unpifiplus.h
@@ -23,6 +23,8 @@ get_ifi_info_plus.o: lib/get_ifi_info_plus.c
 	$(CC) $(FLAGS) -c lib/get_ifi_info_plus.c $(LIBS)
 prifinfo_plus.o: lib/prifinfo_plus.c
 	$(CC) $(FLAGS) -c lib/prifinfo_plus.c $(LIBS)
+rtt.o: lib/rtt.c unprtt.h
+	$(CC) $(FLAGS) -c lib/rtt.c $(LIBS)
 
 clean:
 	echo "Removing object files..."
