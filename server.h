@@ -16,7 +16,7 @@ struct socket_configuration
 struct server_configuration
 {
     int server_port; 
-    int server_win_size;
+    short int server_win_size;
 };
 
 void readConfig();
@@ -26,5 +26,8 @@ int isLocal(struct sockaddr_in *clientAddr);
 void handleRequest(int iListenSock, struct sockaddr_in *pcClientAddr, const char* request_file );
 struct in_addr bitwise_and(struct in_addr ip, struct in_addr mask);
 void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr);
+<<<<<<< HEAD
 void sig_alrm(int signo);
 void sig_chld(int signo);
+=======
+>>>>>>> f40f16daeea568cc064258607314feb54e301c4a

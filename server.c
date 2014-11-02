@@ -14,9 +14,12 @@ struct socket_configuration socket_config[MAXSOCKET];
 int iSockNum;
 struct Payload send_buf[MAX_BUF_SIZE];
 int datagram_num = 0;
+
 static sigjmp_buf jmpbuf;
 int rttinit=0;
 static rtt_info rttinfo;
+
+unsigned long int seqNum = 5;
 
 int main(int argc, char *argv[]) 
 {
@@ -134,28 +137,34 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     }
 
     // get the ephemeral port number 
-
-    char serv_ephe_port[PAYLOAD_SIZE];
+    char serv_ephe_port[MAX_DATA_LEN];
     sprintf(serv_ephe_port, "%i", ntohs(conn_servaddr.sin_port));
-    
     printSockInfo(&conn_servaddr, "Local");
 
+    //establish connection socket
     Connect(conn_sockfd, (SA*)pClientAddr, sizeof(*pClientAddr));
 
-    if (sendto(socket_config[iListenSockIdx].sockfd, serv_ephe_port, 
-                sizeof(serv_ephe_port), 0, (SA*)pClientAddr, sizeof(*pClientAddr))<0) {
+    //send port to client
+    struct Payload newPortPack;
+    packData(&newPortPack, seqNum++, 0, server_config.server_win_size, 0, serv_ephe_port);
+    if (sendto(socket_config[iListenSockIdx].sockfd, &newPortPack,
+                sizeof(newPortPack), 0, (SA*)pClientAddr, sizeof(*pClientAddr)) < 0) {
         printf("sending error %s\n", strerror(errno));
     } else {
         printf("send ephemeral port number %s to client \n", serv_ephe_port);
     }             
 
-     // close listening socket
-    close(socket_config[iListenSockIdx].sockfd);
+    printf("file name: %s\n", request_file);
+    
+    // close listening socket
+    struct Payload expAck;
+    read(socket_config[iListenSockIdx].sockfd, &expAck, sizeof(expAck));
+    if (expAck.header.flag == (1 << 7)) { //TODO : seqNum
+        close(socket_config[iListenSockIdx].sockfd);
+    }
 
     // transfer file
     //Read(conn_sockfd, request_file, MAXLINE);
-    printf("file name: %s\n", request_file);
-
     FILE* fileDp;
     fileDp = fopen(request_file, "r");
 
@@ -184,7 +193,8 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
         cBuf[read_num] = '\0';
 
         if (write_flag) {
-            packData(&send_buf[datagram_num++], cBuf);
+            //TODO:
+            packData(&send_buf[datagram_num++], 1, 1, 1, 1, cBuf);
         }
     }
 

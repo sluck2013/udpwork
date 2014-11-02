@@ -55,11 +55,25 @@ void printSockInfo(struct sockaddr_in* addr, char* addrName) {
  *        packed into
  * @param char* data pointer to data read from file
  */
-void packData(struct Payload* datagram, const char* data) {
+void packData(struct Payload* datagram, unsigned long int seqNum,
+      unsigned long int ackNum, unsigned short int winSize,
+      unsigned char flag,  const char* data) {
     //TODO: pack
-    datagram->header.seqNum = 0;
+    datagram->header.seqNum = seqNum;
     datagram->header.timestamp = 0;
-    datagram->header.ackNum = 0;
-    datagram->header.winSize = 0;
+    datagram->header.ackNum = ackNum;
+    datagram->header.winSize = winSize;
     strcpy(datagram->data, data);
+}
+
+void setPackTime(struct Payload *datagram, unsigned long int timestamp) {
+    datagram->header.timestamp = timestamp;
+}
+
+void newAck(struct Payload* datagram, unsigned long int seqNum,
+        unsigned long int ackNum, unsigned short int winSize,
+        unsigned long int timestamp) {
+    unsigned char flag = 1 << 7;
+    packData(datagram, seqNum, ackNum, winSize, flag, " ");
+    setPackTime(datagram, timestamp);
 }

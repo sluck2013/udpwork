@@ -9,7 +9,7 @@ struct Config {
     char serverAddr[MAXCHAR];
     int port;
     char dataFile[MAXCHAR];
-    unsigned int recvWinSize;
+    unsigned short int recvWinSize;
     int seed;
     float pLoss;
     unsigned int mu;
