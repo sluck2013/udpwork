@@ -249,6 +249,7 @@ void* printData(void *arg) {
 
 void getSleepTime(struct timespec* tm) {
     //TODO: turn on rand!!!
+    //seed48(config.seed);
     //double r = drand48();
     //printf("%F\n", r);
     double r = 0.45;

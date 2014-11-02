@@ -119,7 +119,8 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     bzero(&conn_servaddr, sizeof(conn_servaddr));
     conn_servaddr.sin_family = AF_INET;
     conn_servaddr.sin_port = htons(0);
-    conn_servaddr.sin_addr = pClientAddr->sin_addr;
+    //conn_servaddr.sin_addr = pClientAddr->sin_addr;
+    conn_servaddr.sin_addr = socket_config[iListenSockIdx].ip;
 
     Bind(conn_sockfd, (SA*)&conn_servaddr, sizeof(conn_servaddr));
 
@@ -153,13 +154,12 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     
     // close listening socket
     struct Payload expAck;
-    read(socket_config[iListenSockIdx].sockfd, &expAck, sizeof(expAck));
+    Read(socket_config[iListenSockIdx].sockfd, &expAck, sizeof(expAck));
     if (expAck.header.flag == (1 << 7)) { //TODO : seqNum
-        close(socket_config[iListenSockIdx].sockfd);
+        Close(socket_config[iListenSockIdx].sockfd);
     }
 
     // transfer file
-    //Read(conn_sockfd, request_file, MAXLINE);
     FILE* fileDp;
     fileDp = fopen(request_file, "r");
 
@@ -193,11 +193,7 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
         }
     }
 
-
-    //function call sendData();
     sendData(conn_sockfd, pClientAddr);
-    
-
 }
 
 void readConfig() {
@@ -291,7 +287,7 @@ int isLocal(struct sockaddr_in *clientAddr) {
 
 void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
     for(int i = 0; i < datagram_num; i++) {
-        //Sendto(conn_sockfd, &send_buf[i], sizeof(send_buf[i]), 0, (SA*)pClientAddr, sizeof(*pClientAddr));
-        write(conn_sockfd, &send_buf[i], PAYLOAD_SIZE);
+        Sendto(conn_sockfd, &send_buf[i], sizeof(send_buf[i]), 0, (SA*)pClientAddr, sizeof(*pClientAddr));
+        //Write(conn_sockfd, &send_buf[i], PAYLOAD_SIZE);
     }
 }
