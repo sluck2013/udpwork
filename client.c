@@ -17,6 +17,13 @@ unsigned long int iBufBase = 0;
 unsigned long int iBufEnd = 0;
 unsigned long int seqNum = 10;
 
+pthread_mutex_t iBufBase_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t iBufEnd_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t iBufEnd_cond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t iRecvBufFull_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t iRecvBufFull_cond = PTHREAD_COND_INITIALIZER;
+int iRecvBufFull = 0;
+
 int main(int argc, char **argv) {
     readConfig();      // read client.in
     setIPClient();     // setIPClient
@@ -41,6 +48,7 @@ void readConfig() {
     res[4] = fscanf(fConfig, "%d", &config.seed);
     res[5] = fscanf(fConfig, "%f", &config.pLoss);
     res[6] = fscanf(fConfig, "%ud", &config.mu);
+    config.recvWinSize = min(config.recvWinSize, MAX_BUF_SIZE);
 
     for (int i = 0; i < 7; ++i) {
         if (res[i] <= 0) {
@@ -207,10 +215,8 @@ void createUDPSocket() {
 
     //send back ack
     struct Payload newPortAck;
-    newAck(&newPortAck, seqNum++, rawNewPort.header.seqNum, min(
-               MAX_BUF_SIZE, config.recvWinSize
-               ), rawNewPort.header.timestamp
-          );
+    newAck(&newPortAck, seqNum++, rawNewPort.header.seqNum, 
+            config.recvWinSize, rawNewPort.header.timestamp);
     Write(sockfd, &newPortAck, sizeof(newPortAck));
 
     pthread_t tid;
@@ -219,12 +225,38 @@ void createUDPSocket() {
 
     Pthread_create(&tid, NULL, printData, NULL);
     while (1) {
-        Read(sockfd, &plReadBuf[iBufEnd], sizeof(plReadBuf[iBufEnd]));
+        Pthread_mutex_lock(&iRecvBufFull_mutex);
+        while (iRecvBufFull) { 
+            Pthread_cond_wait(&iRecvBufFull_cond, &iRecvBufFull_mutex);
+        }
+        Pthread_mutex_unlock(&iRecvBufFull_mutex);
+
+        struct Payload msg;
+        Read(sockfd, &msg, sizeof(msg));
+
         struct Payload ack;
-        //TODO:
-        newAck(&ack, seqNum++, plReadBuf[iBufEnd].header.seqNum, 0, plReadBuf[iBufEnd].header.timestamp);
+        Pthread_mutex_lock(&iBufBase_mutex);
+        newAck(&ack, seqNum++, getSeqNum(&msg), getWinSize(), getTimestamp(&msg));
+        Pthread_mutex_unlock(&iBufBase_mutex);
         Write(sockfd, &ack, sizeof(ack));
+
+        if (iBufEnd > 0) {
+            if (getSeqNum(&msg) <= getSeqNum(&plReadBuf[iBufEnd - 1])) {
+                continue;
+            }
+        }
+
+        plReadBuf[iBufEnd] = msg;
+        Pthread_mutex_lock(&iBufEnd_mutex);
         ++iBufEnd;
+        if (getWinSize() == 0) {
+            Pthread_mutex_lock(&iRecvBufFull_mutex);
+            iRecvBufFull = 1;
+            Pthread_mutex_unlock(&iRecvBufFull_mutex);
+        }
+        Pthread_cond_signal(&iBufEnd_cond);
+        Pthread_mutex_unlock(&iBufEnd_mutex);
+
         if (iBufEnd > MAX_BUF_SIZE) {
             printErr(ERR_READ_BUF_OVERFLOW);
         }
@@ -234,17 +266,40 @@ void createUDPSocket() {
     Pthread_join(tid, NULL);
 }
 
+inline unsigned short int getWinSize() {
+    int endpoint = min(iBufBase + config.recvWinSize, MAX_BUF_SIZE);
+    return endpoint - iBufEnd;
+}
+
 void* printData(void *arg) {
     while (1) {
-        //lock iBufEnd
-        for (unsigned long int i = iBufBase; i < iBufEnd; ++i) {
-            printf("%s", plReadBuf[i].data);
-            fflush(stdout);
+        Pthread_mutex_lock(&iBufEnd_mutex);
+        while (iBufBase >= iBufEnd) {
+            Pthread_cond_wait(&iBufEnd_cond, &iBufEnd_mutex);
         }
-        iBufBase = iBufEnd;
+        //println();
+        //printInfoIntItem("base", iBufBase);
+        //printInfoIntItem("end", iBufEnd);
+       
+        //if (iBufBase >= iBufEnd) continue;
+        //printInfoIntItem("iBufBase", iBufBase);
+        printf("%s", plReadBuf[iBufBase].data);
+        fflush(stdout);
+
+        Pthread_mutex_lock(&iBufBase_mutex);
+        ++iBufBase;
+        Pthread_mutex_unlock(&iBufBase_mutex);
+
+        Pthread_mutex_lock(&iRecvBufFull_mutex);
+        iRecvBufFull = 0;
+        Pthread_cond_signal(&iRecvBufFull_cond);
+        Pthread_mutex_unlock(&iRecvBufFull_mutex);
+
         struct timespec tm, tmRemain;
         getSleepTime(&tm);
-        nanosleep(&tm, &tmRemain);
+        //nanosleep(&tm, &tmRemain);
+        sleep(1);//TODO
+        Pthread_mutex_unlock(&iBufEnd_mutex);
     }
     return NULL;
 }
