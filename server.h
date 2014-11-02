@@ -31,6 +31,9 @@ void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr);
 static void sig_alrm(int signo);
 void sig_chld(int signo);
 inline int isValidAck(const struct Payload* ack, unsigned long int seqNum) {
-    return (ack->header.flag && (1 << 7) == (1 << 7) &&
-            ack->header.ackNum == seqNum);
+    int r = ((ack->header.flag & (1 << 7)) == (1 << 7));
+    if (seqNum != 0) {
+        r = r && ack->header.ackNum == seqNum;
+    }
+    return r;
 }
