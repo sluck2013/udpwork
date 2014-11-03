@@ -23,10 +23,10 @@
 //#define PAYLOAD_SIZE (25)
 #define MAX_DATA_LEN (407)
 #define PAYLOAD_SIZE (512)
-#define MAX_BUF_SIZE (500)
+#define MAX_BUF_SIZE (1000)
 
 #define ACK (128)
 #define FIN (64)
-#define MSL (30)
+#define MSL (3)
 
 #endif

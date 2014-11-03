@@ -344,6 +344,11 @@ LSEND_PORT_AGAIN:
     }
 
     void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
+        // used for slow start & congestion avoidance
+        int cwnd = 1;  
+        int ssthresh = 65536;
+        int rec_win = server_config.server_win_size;
+        int real_win = min(cwnd, rec_win);
         // timeout mechanism initialization
         printInfo("Sending data...");
         if (rttinit == 0) {
@@ -360,12 +365,13 @@ LSEND_PORT_AGAIN:
         while (iBufBase <= datagram_num) {
             if (iBufBase < datagram_num) {
                 if (!iClientBufFull) {
+                    printInfo("AAX");
                     alarm(rtt_start(&rttinfo));
                     if (sigsetjmp(jmpbuf, 1) != 0) {
                         if (rtt_timeout(&rttinfo) < 0) {
-                            printInfo("time out and give up");
                             rttinit = 0;
                         }
+                        alarm(rtt_start(&rttinfo));
                         printInfo("Time out, restransmitting...");
                     }
 
@@ -375,10 +381,10 @@ LSEND_PORT_AGAIN:
                             continue;
                         }
                         setPackTime(&send_buf[i], rtt_ts(&rttinfo) );
-                        write(conn_sockfd, &send_buf[i], sizeof(send_buf[i]));
+                        Write(conn_sockfd, &send_buf[i], sizeof(send_buf[i]));
                         printPackInfo(&send_buf[i]);
                     }
-                    iBufEnd = min(iBufBase + server_config.server_win_size, datagram_num);
+                    iBufEnd = min(iBufBase + real_win, datagram_num);
                 }
             }
 

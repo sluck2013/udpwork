@@ -300,7 +300,7 @@ LSEND_FILENAME_AGAIN:
         Pthread_mutex_unlock(&iRecvBufFull_mutex);
 
         struct Payload msg;
-        Read(sockfd, &msg, sizeof(msg));
+        read(sockfd, &msg, sizeof(msg));
         if(isDropped()) {
             printInfo("Package dropped! (See next line for details)");
             printPackInfo(&msg);
