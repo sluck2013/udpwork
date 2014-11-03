@@ -81,12 +81,8 @@ void listenSockets() {
 
                 // receive file name
                 struct Payload recvfileBuf;                 
-                packData(&recvfileBuf, seqNum++, 0, server_config.server_win_size, 0, request_file); 
-                int n= read(socket_config[num].sockfd, &recvfileBuf, sizeof(recvfileBuf));
-
+                int n = read(socket_config[num].sockfd, &recvfileBuf, sizeof(recvfileBuf));
                 if (n < 0) {
-                    printInfoIntItem("num: ", num);
-                    printf("%s\n", strerror(errno)); 
                     errQuit(ERR_READ_DATA_FROM_CLI);
                 }
 
@@ -95,7 +91,7 @@ void listenSockets() {
                 if (pid < 0) {
                     errQuit(ERR_FORK_FAIL);
                 } else if (pid == 0) {
-                    handleRequest(num, &cliaddr,  request_file);
+                    handleRequest(num, &cliaddr, request_file);
                     return;
                 }
             }
@@ -162,42 +158,40 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     struct Payload newPortPack;
    
     // timeout mechanism initialization for server sending ephemeral port number
-    if(rttinit==0) {
+    if(rttinit== 0) {
         rtt_init(&rttinfo);
-        rttinit=1;
-        rtt_d_flag=1;
+        rttinit = 1;
+        rtt_d_flag = 1;
     }
-    signal(SIGALRM, sig_alrm);
+    //signal(SIGALRM, sig_alrm);
     rtt_newpack(&rttinfo);
     packData(&newPortPack, seqNum++, 0, server_config.server_win_size, 0, serv_ephe_port);
 
 LSEND_PORT_AGAIN:
-        setPackTime(&newPortPack, rtt_ts(&rttinfo) );
-        //write(socket_config[iListenSockIdx].sockfd, &newPortPack, sizeof(newPortPack) );
-        if (sendto(socket_config[iListenSockIdx].sockfd, &newPortPack,
-                sizeof(newPortPack), 0, (SA*)pClientAddr, sizeof(*pClientAddr)) < 0) {
-            //printf("sending error %s\n", strerror(errno)); 
-               printErr("sending error");
-        } else {
-            //printf("send ephemeral port number %s to client \n", serv_ephe_port);
-               printItem("send ephemeral port number to client", serv_ephe_port);
-        }      
-        alarm(rtt_start(&rttinfo));
+    setPackTime(&newPortPack, rtt_ts(&rttinfo));
+    //if (sendto(socket_config[iListenSockIdx].sockfd, &newPortPack,
+    //            sizeof(newPortPack), 0, (SA*)pClientAddr, sizeof(*pClientAddr)) < 0) {
+    if (write(socket_config[iListenSockIdx].sockfd, &newPortPack, sizeof(newPortPack))) {
+        printErr("sending error");
+        printErr(strerror(errno));
+    } else {
+        printItem("send ephemeral port number to client", serv_ephe_port);
+    }      
+    alarm(rtt_start(&rttinfo));
 
-        if (sigsetjmp(jmpbuf, 1) != 0) {
-            if (rtt_timeout(&rttinfo) < 0) {
-                printInfo("time out and give up ");
-                // in the event of the server timing out, retransmit two copies to listening socket and connection socket
-                setPackTime(&newPortPack, rtt_ts(&rttinfo) );
-                write(conn_sockfd, &newPortPack, sizeof(newPortPack) );
-                rttinit = 0;
-            }
-            goto LSEND_PORT_AGAIN;
+    if (sigsetjmp(jmpbuf, 1) != 0) {
+        if (rtt_timeout(&rttinfo) < 0) {
+            printInfo("time out and give up ");
+            //if server times out, retransmit via listening socket
+            setPackTime(&newPortPack, rtt_ts(&rttinfo) );
+            write(conn_sockfd, &newPortPack, sizeof(newPortPack) );
+            rttinit = 0;
         }
+        goto LSEND_PORT_AGAIN;
+    }
 
-
-        // receive client's ack of getting ephemeral port number and when the server receives ack, closes "listening socket"
-        while(1) {
+    // receive client's ack of getting ephemeral port number and when the server receives ack, closes "listening socket"
+    while(1) {
             struct Payload expAck;
             Read(conn_sockfd, &expAck, sizeof(expAck));
             if (isValidAck(&expAck, getSeqNum(&newPortPack))) {

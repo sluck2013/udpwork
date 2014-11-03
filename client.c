@@ -221,36 +221,36 @@ void createUDPSocket() {
     packData(&sendfileBuf, seqNum++, 0, config.recvWinSize, 0, config.dataFile);      
 
 LSEND_FILENAME_AGAIN:
-        setPackTime(&sendfileBuf, rtt_ts(&rttinfo) );
-        Write(sockfd, &sendfileBuf, sizeof(sendfileBuf));
-        alarm(rtt_start(&rttinfo));
+    setPackTime(&sendfileBuf, rtt_ts(&rttinfo) );
+    Write(sockfd, &sendfileBuf, sizeof(sendfileBuf));
+    alarm(rtt_start(&rttinfo));
 
-        if (sigsetjmp(jmpbuf, 1) != 0) {
-            if (rtt_timeout(&rttinfo) < 0) {
-                printInfo("time out and give up ");
-                rttinit = 0;
-            }
-            goto LSEND_FILENAME_AGAIN;
+    if (sigsetjmp(jmpbuf, 1) != 0) {
+        if (rtt_timeout(&rttinfo) < 0) {
+            printInfo("time out and give up ");
+            rttinit = 0;
         }
+        goto LSEND_FILENAME_AGAIN;
+    }
 
     struct Payload rawNewPort;
-   
-        while(1) {
-            /* get server's "connection" socket port*/
-            //struct Payload rawNewPort;
-            Read(sockfd, &rawNewPort, sizeof(rawNewPort));
-            if (isValidAck(&rawNewPort, getSeqNum(&sendfileBuf))) {
-                config.port = atoi(rawNewPort.data);
-                break;
-            }
-        }
-        alarm(0);          //stop timer
 
-        rtt_stop(&rttinfo, rtt_ts(&rttinfo) - getTimestamp(&sendfileBuf));
-    
+    while(1) {
+        /* get server's "connection" socket port*/
+        //struct Payload rawNewPort;
+        Read(sockfd, &rawNewPort, sizeof(rawNewPort));
+        if (isValidAck(&rawNewPort, getSeqNum(&sendfileBuf))) {
+            config.port = atoi(rawNewPort.data);
+            break;
+        }
+    }
+    alarm(0);          //stop timer
+
+    rtt_stop(&rttinfo, rtt_ts(&rttinfo) - getTimestamp(&sendfileBuf));
+
     printInfo("file name transmission is ok ");    
 
-    
+
     //reconnect to "connection" socket
     siServerAddr.sin_port = htons(config.port);
     Connect(sockfd, (SA*)&siServerAddr, sizeof(siServerAddr));
