@@ -53,10 +53,10 @@ void readConfig() {
     res[0] = fscanf(fConfig, "%s", config.serverAddr);
     res[1] = fscanf(fConfig, "%d", &config.port);
     res[2] = fscanf(fConfig, "%s", config.dataFile);
-    res[3] = fscanf(fConfig, "%ud", &config.recvWinSize);
+    res[3] = fscanf(fConfig, "%d", &config.recvWinSize);
     res[4] = fscanf(fConfig, "%d", &config.seed);
     res[5] = fscanf(fConfig, "%f", &config.pLoss);
-    res[6] = fscanf(fConfig, "%ud", &config.mu);
+    res[6] = fscanf(fConfig, "%d", &config.mu);
     config.recvWinSize = min(config.recvWinSize, MAX_BUF_SIZE);
 
     int i;
