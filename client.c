@@ -350,7 +350,7 @@ LSEND_FILENAME_AGAIN:
             alarm(MSL);
             if (sigsetjmp(jmpbuf, 1) != 0) {
                 Close(sockfd);
-                printInfo("Socekt closed!");
+                printInfo("Socket closed!");
                 return;
             }
         }
