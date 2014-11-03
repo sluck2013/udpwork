@@ -364,7 +364,7 @@ void* printData(void *arg) {
         while (iBufBase >= iBufEnd) {
             Pthread_cond_wait(&iBufEnd_cond, &iBufEnd_mutex);
         }
-        printf("%s", plReadBuf[iBufBase].data);
+        printf("%s\n", plReadBuf[iBufBase].data);
         fflush(stdout);
 
         Pthread_mutex_lock(&iBufBase_mutex);
@@ -377,9 +377,9 @@ void* printData(void *arg) {
         Pthread_mutex_unlock(&iRecvBufFull_mutex);
 
         struct timespec tm, tmRemain;
-        getSleepTime(&tm);
+        unsigned long int t = getSleepTime(&tm);
         nanosleep(&tm, &tmRemain);
-        sprintf(prtMsg, "Sleeping for %d ms...");
+        sprintf(prtMsg, "Sleeping for %d ms...", t);
         printInfo(prtMsg);
         
         Pthread_mutex_unlock(&iBufEnd_mutex);

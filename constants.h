@@ -27,6 +27,6 @@
 
 #define ACK (128)
 #define FIN (64)
-#define MSL (3)
+#define MSL (30)
 
 #endif
