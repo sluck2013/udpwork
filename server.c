@@ -178,7 +178,7 @@ LSEND_PORT_AGAIN:
         printErr("sending error");
     } else {
         printInfo("Sent port of connection socket to client");
-        printPackInfo(&newPortPack);
+        printPackInfo(&newPortPack, 0);
     }      
     alarm(rtt_start(&rttinfo));
 
@@ -189,7 +189,7 @@ LSEND_PORT_AGAIN:
             setPackTime(&newPortPack, rtt_ts(&rttinfo) );
             write(conn_sockfd, &newPortPack, sizeof(newPortPack));
             printInfo("Sent port of connection socket to client (Connection socket)");
-            printPackInfo(&newPortPack);
+            printPackInfo(&newPortPack, 0);
             rttinit = 0;
         }
         goto LSEND_PORT_AGAIN;
@@ -350,6 +350,8 @@ LSEND_PORT_AGAIN:
         int iRecvWin = server_config.server_win_size;
         int iRealWin = min(cwnd, iRecvWin);
         int iRcvedThird = 0;
+        printInfo("Flow Control Initialization");
+        printf("cwnd = %d, ssthresh = %d\n", cwnd, ssthresh);
         // timeout mechanism initialization
         printInfo("Sending data...");
         if (rttinit == 0) {
@@ -376,16 +378,17 @@ LSEND_PORT_AGAIN:
                         printInfo("Time out, restransmitting...");
                         ssthresh = cwnd / 2;
                         cwnd = 1;
+                        printf("cwnd = 1, ssthresh = %d\n", ssthresh);
                     }
 
                     int i, j;
-                    for(i = iBufBase, j = 0; i < datagram_num && j < server_config.server_win_size; ++i, ++j) {
+                    for(i = iBufBase, j = 0; i < datagram_num && j < iRealWin; ++i, ++j) {
                         if (recvd_ack[i] > 0) {
                             continue;
                         }
                         setPackTime(&send_buf[i], rtt_ts(&rttinfo) );
                         Write(conn_sockfd, &send_buf[i], sizeof(send_buf[i]));
-                        printPackInfo(&send_buf[i]);
+                        printPackInfo(&send_buf[i], 0);
                     }
                     iBufEnd = min(iBufBase + iRealWin, datagram_num);
                 }
@@ -395,8 +398,7 @@ LSEND_PORT_AGAIN:
                 struct Payload ack;
                 read(conn_sockfd, &ack, sizeof(ack));
                 if (isValidAck(&ack, 0)) {
-                    printInfo("Ack received (see next line)");
-                    printPackInfo(&ack);
+                    printPackInfo(&ack, 3);
                     int idx = getAckIdx(&ack, iBufBase);
                     if (idx >= iBufEnd || idx < iBufBase) {
                         continue;
@@ -409,19 +411,23 @@ LSEND_PORT_AGAIN:
                             continue; 
                         }
                         ssthresh = cwnd / 2;
+                        printf("ssthresh = %d\n", ssthresh);
                     } else if (recvd_ack[idx] == 0) {
                         if (cwnd <= ssthresh) {
                             cwnd *= 2;
                         } else {
                             ++cwnd;
                         }
+                        printf("cwnd = %d\n", cwnd);
                     } else if (recvd_ack[idx] == 2) {
                         if (iRcvedThird) {
                             ++cwnd;
                         } else {
                             ssthresh = cwnd / 2;
                             cwnd = ssthresh + 3;
+                            printf("cwnd = %d, ssthresh = %d\n", cwnd, ssthresh);
                         }
+
                     }
 
                     recvd_ack[idx] = 1;
@@ -437,7 +443,7 @@ LSEND_PORT_AGAIN:
                         unsigned long int iNewDur = rtt_start(&rttinfo);
                         alarm(iNewDur > iElapsed ? iNewDur - iElapsed : 1);
                     }
-                    iRecvWin = getWinSize(&ack);
+                    iRecvWin = min(getWinSize(&ack), server_config.server_win_size);
                     iRealWin = min(iRecvWin, cwnd);
 
                     if (iRealWin == 0) {

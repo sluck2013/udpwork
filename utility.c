@@ -111,8 +111,25 @@ unsigned long int getWinSize(const struct Payload* datagram) {
     return datagram->header.winSize;
 }
 
-void printPackInfo(const struct Payload* datagram) {
-    printf("DATA: SEQ#:%lu, ACK#:%lu, TIMESTAMP:%lu, WINSIZE:%d, FIN:%d, ACK:%d\n", getSeqNum(datagram), getAckNum(datagram), getTimestamp(datagram), getWinSize(datagram), isFin(datagram), isValidAck(datagram, 0));
+void printPackInfo(const struct Payload* datagram, int mode) {
+    char key[MAXLINE];
+    switch (mode) {
+        case 0:
+            strcpy(key, "SENT DATA");
+            break;
+        case 1:
+            strcpy(key, "RECV DATA");
+            break;
+        case 2:
+            strcpy(key, "SENT ACK ");
+            break;
+        case 3:
+            strcpy(key, "RECV ACK ");
+            break;
+        default:
+            strcpy(key, "DATA");
+    }
+    printf("%s: SEQ#:%lu, ACK#:%lu, TIMESTAMP:%lu, WINSIZE:%d, FIN:%d, ACK:%d\n", key,  getSeqNum(datagram), getAckNum(datagram), getTimestamp(datagram), getWinSize(datagram), isFin(datagram), isValidAck(datagram, 0));
 }
 
 int isValidAck(const struct Payload* ack, unsigned long int seqNum) {

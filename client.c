@@ -303,14 +303,14 @@ LSEND_FILENAME_AGAIN:
             printInfo("Receiving window reopens. Sending dupliate ACK...");
             setPackWinSize(&ack, getWindowSize());
             Write(sockfd, &ack, sizeof(ack)); 
-            printPackInfo(&ack);
+            printPackInfo(&ack, 2);
         }
 
         struct Payload msg;
         read(sockfd, &msg, sizeof(msg));
         if(isDropped()) {
             printInfo("Package dropped! (See next line for details)");
-            printPackInfo(&msg);
+            printPackInfo(&msg, 100);
             continue;
         }
         
@@ -319,7 +319,7 @@ LSEND_FILENAME_AGAIN:
         Pthread_mutex_unlock(&iBufBase_mutex);
         Write(sockfd, &ack, sizeof(ack));
         printInfo("Sent ack");
-        printPackInfo(&ack);
+        printPackInfo(&ack, 2);
 
         if (iBufEnd > 0) {
             if (getSeqNum(&msg) <= getSeqNum(&plReadBuf[iBufEnd - 1])) {
