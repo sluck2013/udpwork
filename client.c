@@ -23,6 +23,7 @@ unsigned long int serverSeqNumStart;
 static sigjmp_buf jmpbuf;
 int rttinit=0;
 static struct rtt_info rttinfo;
+char prtMsg[MAXLINE];
 
 pthread_mutex_t iBufBase_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t iBufEnd_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -58,13 +59,27 @@ void readConfig() {
     res[6] = fscanf(fConfig, "%ud", &config.mu);
     config.recvWinSize = min(config.recvWinSize, MAX_BUF_SIZE);
 
-    for (int i = 0; i < 7; ++i) {
+    int i;
+    for (i = 0; i < 7; ++i) {
         if (res[i] <= 0) {
             errQuit(ERR_READ_CLIENT_IN);
         }
     }
     strcpy(config.IPServer, config.serverAddr);
     fclose(fConfig);
+
+    println();
+    printInfo("Client.in read!");
+    printf("========== Configure in file ==========\n");
+    printf("Server address: %s\n", config.serverAddr);
+    printf("Sever's well-know port: %d\n", config.port);
+    printf("File to request: %s\n", config.dataFile);
+    printf("Receive window size: %d\n", config.recvWinSize);
+    printf("Seed: %d", config.seed);
+    printf("Problability of data loss: %f\n", config.pLoss);
+    printf("mu: %d\n", config.mu);
+    printf("=======================================\n");
+    println();
 }
 
 /* 
@@ -86,12 +101,15 @@ void setIPClient() {
     if (isOnSameHost(ifiHead)) {
         strcpy(config.IPClient, "127.0.0.1");
         strcpy(config.IPServer, "127.0.0.1");
+        printInfo("Server is on the same host");
     } else if (isLocal(ifiHead, &ifiMatch)) {
         struct sockaddr *sa = ifiMatch->ifi_addr;
         strcpy(config.IPClient, Sock_ntop_host(sa, sizeof(*sa)));
+        printInfo("Server is local");
     } else {
         struct sockaddr *sa = ifiHead->ifi_addr;
         strcpy(config.IPClient, Sock_ntop_host(sa, sizeof(*sa)));
+        printInfo("Server is non-local");
     }
 
     free_ifi_info_plus(ifiHead);
@@ -107,7 +125,8 @@ void setIPClient() {
  *        linked list returned by Get_ifi_info_plus()
  */
 int isOnSameHost(struct ifi_info *ifiHead) {
-    for (struct ifi_info *ifi = ifiHead; ifi != NULL; ifi = ifi->ifi_next) {
+    struct ifi_info *ifi;
+    for (ifi = ifiHead; ifi != NULL; ifi = ifi->ifi_next) {
         struct sockaddr *sa = ifi->ifi_addr;
         char *clientIP = Sock_ntop_host(sa, sizeof(*sa));
         if (strcmp(config.serverAddr, clientIP) == 0) {
@@ -135,7 +154,8 @@ int isLocal(struct ifi_info *ifiHead, struct ifi_info **ifiMatch) {
     int iIsLocal = 0;
     int iMaxPrefixLen = 0;
 
-    for (struct ifi_info *ifi = ifiHead; ifi != NULL; ifi = ifi->ifi_next) {
+    struct ifi_info *ifi;
+    for (ifi = ifiHead; ifi != NULL; ifi = ifi->ifi_next) {
         clientAddr = ((struct sockaddr_in*)ifi->ifi_addr)->sin_addr;
         maskAddr = ((struct sockaddr_in*)ifi->ifi_ntmaddr)->sin_addr;
         uint32_t r1 = serverAddr.s_addr & maskAddr.s_addr;
@@ -183,7 +203,6 @@ void createUDPSocket() {
     socklen_t slForeignLen = sizeof(siForeignAddr);
     struct in_addr iaLocalAddr;
 
-
     sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
     printInfo("UDP socket created");
 
@@ -203,14 +222,14 @@ void createUDPSocket() {
     Inet_pton(AF_INET, config.IPServer, &siServerAddr.sin_addr);
     siServerAddr.sin_port = htons(config.port);
     Connect(sockfd, (SA*)&siServerAddr, sizeof(siServerAddr));
-    printInfo("Connected to server"); // TODO: add addr.
+    sprintf(prtMsg, "Connected to server %s:%d", config.IPServer, config.port);
+    printInfo(prtMsg);
 
     Getpeername(sockfd, (SA*)&siForeignAddr, &slForeignLen);
     printSockInfo(&siForeignAddr, "Foreign");
-    //Write(sockfd, config.dataFile, strlen(config.dataFile));
-
 
     // timeout mechanism initialization for file name transfer to server
+    printInfo("Sending request file name to server...");
     struct Payload sendfileBuf;
     
     if (rttinit == 0) {
@@ -229,14 +248,15 @@ LSEND_FILENAME_AGAIN:
 
     if (sigsetjmp(jmpbuf, 1) != 0) {
         if (rtt_timeout(&rttinfo) < 0) {
-            printInfo("time out and give up ");
             rttinit = 0;
         }
+        printInfo("Time out, resending file name...");
         goto LSEND_FILENAME_AGAIN;
     }
 
     struct Payload rawNewPort;
 
+    printInfo("Reading server's port of 'connection' socket");
     while(1) {
         /* get server's "connection" socket port*/
         //struct Payload rawNewPort;
@@ -244,6 +264,7 @@ LSEND_FILENAME_AGAIN:
         if (isValidAck(&rawNewPort, getSeqNum(&sendfileBuf))) {
             config.port = atoi(rawNewPort.data);
             serverSeqNumStart = getSeqNum(&rawNewPort) + 1;
+            printInfoIntItem("Read port is", config.port);
             break;
         }
     }
@@ -251,15 +272,11 @@ LSEND_FILENAME_AGAIN:
 
     rtt_stop(&rttinfo, rtt_ts(&rttinfo) - getTimestamp(&sendfileBuf));
 
-    printInfo("file name transmission is ok ");    
-
-
     //reconnect to "connection" socket
     siServerAddr.sin_port = htons(config.port);
     Connect(sockfd, (SA*)&siServerAddr, sizeof(siServerAddr));
-    char msg[MAXLINE];
-    sprintf(msg, "Reconnected to server at port %d", config.port);
-    printInfo(msg);
+    sprintf(prtMsg, "Reconnected to server %s:%d", config.IPServer, config.port);
+    printInfo(prtMsg);
 
     //send back ack of getting ephemeral port number
     struct Payload newPortAck;
@@ -268,6 +285,7 @@ LSEND_FILENAME_AGAIN:
                ), rawNewPort.header.timestamp
           );
     Write(sockfd, &newPortAck, sizeof(newPortAck));
+    printInfo("Sent ack of port info...");
 
     pthread_t tid;
     struct Arg arg;
@@ -284,15 +302,19 @@ LSEND_FILENAME_AGAIN:
         struct Payload msg;
         Read(sockfd, &msg, sizeof(msg));
         if(isDropped()) {
-            printInfoIntItem("package dropped, seqNum", getSeqNum(&msg));
+            printInfo("Package dropped! (See next line for details)");
+            printInfoIntItem("dd", getSeqNum(&msg));
+            printPackInfo(&msg);
             continue;
         }
         
         struct Payload ack;
         Pthread_mutex_lock(&iBufBase_mutex);
-        newAck(&ack, seqNum++, getSeqNum(&msg), getWinSize(), getTimestamp(&msg));
+        newAck(&ack, seqNum++, getSeqNum(&msg), getWindowSize(), getTimestamp(&msg));
         Pthread_mutex_unlock(&iBufBase_mutex);
         Write(sockfd, &ack, sizeof(ack));
+        printInfo("Sent ack");
+        printPackInfo(&ack);
 
         if (iBufEnd > 0) {
             if (getSeqNum(&msg) <= getSeqNum(&plReadBuf[iBufEnd - 1])) {
@@ -306,7 +328,7 @@ LSEND_FILENAME_AGAIN:
         while(getSeqNum(&plReadBuf[iBufEnd]) > 0) {
             ++iBufEnd;
         }
-        if (getWinSize() == 0) {
+        if (getWindowSize() == 0) {
             Pthread_mutex_lock(&iRecvBufFull_mutex);
             iRecvBufFull = 1;
             Pthread_mutex_unlock(&iRecvBufFull_mutex);
@@ -319,6 +341,7 @@ LSEND_FILENAME_AGAIN:
         }
 
         if (isFin(&msg)) {
+            printInfo("Enter TIME_WAIT state");
             alarm(MSL);
             if (sigsetjmp(jmpbuf, 1) != 0) {
                 Close(sockfd);
@@ -330,23 +353,18 @@ LSEND_FILENAME_AGAIN:
     Pthread_join(tid, NULL);
 }
 
-inline unsigned short int getWinSize() {
+unsigned short int getWindowSize() {
     int endpoint = min(iBufBase + config.recvWinSize, MAX_BUF_SIZE);
     return endpoint - iBufEnd;
 }
 
 void* printData(void *arg) {
+    printInfo("Printing data...(printing thread)");
     while (1) {
         Pthread_mutex_lock(&iBufEnd_mutex);
         while (iBufBase >= iBufEnd) {
             Pthread_cond_wait(&iBufEnd_cond, &iBufEnd_mutex);
         }
-        //println();
-        //printInfoIntItem("base", iBufBase);
-        //printInfoIntItem("end", iBufEnd);
-       
-        //if (iBufBase >= iBufEnd) continue;
-        //printInfoIntItem("iBufBase", iBufBase);
         printf("%s", plReadBuf[iBufBase].data);
         fflush(stdout);
 
@@ -361,8 +379,8 @@ void* printData(void *arg) {
 
         struct timespec tm, tmRemain;
         getSleepTime(&tm);
-        //nanosleep(&tm, &tmRemain);
-        sleep(1);//TODO
+        nanosleep(&tm, &tmRemain);
+        
         Pthread_mutex_unlock(&iBufEnd_mutex);
     }
     return NULL;

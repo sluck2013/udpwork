@@ -3,6 +3,7 @@
 #include "utility.h"
 #include "lib/unpifiplus.h"
 #include "unp.h"
+#include "time.h"
 
 void printErr(char *errMsg) {
     fprintf(stderr, "ERROR: %s\n", errMsg);
@@ -14,6 +15,9 @@ void errQuit(char *errMsg) {
 }
 
 void printItem(const char* key, const char* value) {
+//time_t clock;
+//time(&clock);
+//struct tm* t = localtime(&clock);
     printf("%s: %s\n", key, value);
     fflush(stdout);
 }
@@ -51,7 +55,7 @@ void printIfiInfo(struct ifi_info* ifi) {
 void printSockInfo(struct sockaddr_in* addr, char* addrName) {
     unsigned int uiPort = ntohs(addr->sin_port);
     char* pcIP = Sock_ntop_host((SA*)addr, sizeof(*addr));
-    printf("%s address assigned to socket: %s:%u\n", addrName, pcIP, uiPort);
+    printf("INFO: %s address assigned to socket: %s:%u\n", addrName, pcIP, uiPort);
 }
 
 /*
@@ -63,7 +67,6 @@ void printSockInfo(struct sockaddr_in* addr, char* addrName) {
 void packData(struct Payload* datagram, unsigned long int seqNum,
       unsigned long int ackNum, unsigned short int winSize,
       unsigned char flag,  const char* data) {
-    //TODO: pack
     datagram->header.seqNum = seqNum;
     datagram->header.timestamp = 0;
     datagram->header.ackNum = ackNum;
@@ -103,6 +106,23 @@ unsigned long int getAckNum(const struct Payload* datagram) {
 unsigned long int getWinSize(const struct Payload* datagram) {
     return datagram->header.winSize;
 }
+
+void printPackInfo(const struct Payload* datagram) {
+    printf("DATA: SEQ#:%lu, ACK#:%lu, TIMESTAMP:%lu, WINSIZE:%d, FIN:%d, ACK:%d\n", getSeqNum(datagram), getAckNum(datagram), getTimestamp(datagram), getWinSize(datagram), isFin(datagram), isValidAck(datagram, 0));
+}
+
+int isValidAck(const struct Payload* ack, unsigned long int seqNum) {
+    int r = ((ack->header.flag & ACK) == ACK);
+    if (seqNum != 0) {
+        r = r && (ack->header.ackNum == seqNum);
+    }
+    return r;
+}
+
+int isFin(struct Payload *datagram) {
+    return ((datagram->header.flag & FIN) == FIN);
+}
+
 ///////////////////for debug use///////////////:TODO
 void printAddrInfo(SA *addr) {
     struct sockaddr_in *si = (struct sockaddr_in*)addr;
@@ -111,4 +131,3 @@ void printAddrInfo(SA *addr) {
     printf("DEBUG: %s:%d\n", ip, port);
     fflush(stdout);
 }
-
