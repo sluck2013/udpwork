@@ -13,6 +13,7 @@ void printInfo(char *info);
 void printInfoIntItem(char* item, int info);
 void printIfiInfo(struct ifi_info* ifi);
 void printSockInfo(struct sockaddr_in* addr, char* addrName);
+void printPackInfo(const struct Payload* datagram);
 void packData(struct Payload* datagram, unsigned long int seqNum, 
         unsigned long int ackNum, unsigned short int winSize, 
         unsigned char flag, const char* data);

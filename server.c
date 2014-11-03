@@ -20,6 +20,7 @@ int datagram_num = 0;
 static sigjmp_buf jmpbuf;
 int rttinit=0;
 static struct rtt_info rttinfo;
+char prtMsg[MAXLINE];
 
 unsigned long int seqNum = 5;
 
@@ -64,7 +65,6 @@ void listenSockets() {
             }
         }
 
-        printInfo("HERE");
         //check each interface to see if it can read and 
         //find the one that can read (num)
         for(int num = 0; num < iSockNum; ++num) {
@@ -87,6 +87,7 @@ void listenSockets() {
                 if (pid < 0) {
                     errQuit(ERR_FORK_FAIL);
                 } else if (pid == 0) {
+                    printInfo("Entering child process");
                     handleRequest(num, &cliaddr, request_file, getSeqNum(&recvfileBuf));
                     return;
                 }
@@ -108,7 +109,7 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     //char = 1;
     //TODO: uncomment
     if(isLocal(pClientAddr)) {
-        printInfo("Client host is local");
+        printInfo("Client is local");
         if(setsockopt(socket_config[iListenSockIdx].sockfd, 
                     SOL_SOCKET, SO_DONTROUTE, &on, sizeof(on)) < 0) {
             printInfo("setting socket error ");
@@ -122,18 +123,19 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
 
     int conn_sockfd;
     struct sockaddr_in conn_servaddr;
-    //struct sockaddr_in conn_cliaddr;
+    //struct sockaddr
 
     conn_sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
+    printInfo("Connection socket created");
 
     bzero(&conn_servaddr, sizeof(conn_servaddr));
     conn_servaddr.sin_family = AF_INET;
     conn_servaddr.sin_port = htons(0);
-    //conn_servaddr.sin_addr = pClientAddr->sin_addr;
+
     conn_servaddr.sin_addr = socket_config[iListenSockIdx].ip;
 
     Bind(conn_sockfd, (SA*)&conn_servaddr, sizeof(conn_servaddr));
-
+    printInfo("Connection socket binded");
 
     // use getsockname 
     socklen_t len_conn_servaddr= sizeof(conn_servaddr);
@@ -150,7 +152,8 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     //establish connection socket
     Connect(conn_sockfd, (SA*)pClientAddr, sizeof(*pClientAddr));
 
-    printItem("file name", request_file);
+    sprintf(prtMsg, "File name: %s", request_file);
+    printInfo(prtMsg);
     //send port to client
     struct Payload newPortPack;
 
@@ -171,16 +174,19 @@ LSEND_PORT_AGAIN:
         //    if (write(socket_config[iListenSockIdx].sockfd, &newPortPack, sizeof(newPortPack))) {
         printErr("sending error");
     } else {
-        printItem("send ephemeral port number to client", serv_ephe_port);
+        printInfo("Sent port of connection socket to client");
+        printPackInfo(&newPortPack);
     }      
     alarm(rtt_start(&rttinfo));
 
     if (sigsetjmp(jmpbuf, 1) != 0) {
         if (rtt_timeout(&rttinfo) < 0) {
-            printInfo("time out and give up ");
+            printInfo("Sending port number time out. Resending...");
             //if server times out, retransmit via listening socket
             setPackTime(&newPortPack, rtt_ts(&rttinfo) );
-            write(conn_sockfd, &newPortPack, sizeof(newPortPack) );
+            write(conn_sockfd, &newPortPack, sizeof(newPortPack));
+            printInfo("Sent port of connection socket to client (Connection socket)");
+            printPackInfo(&newPortPack);
             rttinit = 0;
         }
         goto LSEND_PORT_AGAIN;
@@ -192,7 +198,7 @@ LSEND_PORT_AGAIN:
         Read(conn_sockfd, &expAck, sizeof(expAck));
         if (isValidAck(&expAck, getSeqNum(&newPortPack))) {
             Close(socket_config[iListenSockIdx].sockfd);
-            printInfo("Listening socked closed\n");
+            printInfo("Listening socked closed!");
             break;
         }
     }
@@ -200,18 +206,16 @@ LSEND_PORT_AGAIN:
 
     rtt_stop(&rttinfo, rtt_ts(&rttinfo) - getTimestamp(&newPortPack));
 
-    printInfo("ephemeral port number transmission is ok ");    
-
     // transfer file
-    printItem("file name", request_file);
     FILE* fileDp;
     fileDp = fopen(request_file, "r");
 
     if (fileDp == NULL) {
-        printInfo("cannot open file!");
         exit(1);
+        errQuit("Cannot open requested file");
     } 
 
+    printInfo("Preparing data...");
     while (!feof(fileDp)) {
         int read_num = 0;
         int write_flag = 1;
@@ -259,8 +263,9 @@ LSEND_PORT_AGAIN:
 
         fclose(config_file);
 
-        printInfoIntItem("server port is: ", server_config.server_port);
-        printInfoIntItem("window size is: ", server_config.server_win_size);
+        printInfo("Server.in read!");
+        printInfoIntItem("Server port is: ", server_config.server_port);
+        printInfoIntItem("Window size is: ", server_config.server_win_size);
 
         println();
     }
@@ -306,6 +311,9 @@ LSEND_PORT_AGAIN:
             ++count;
         }
         iSockNum = count;
+        sprintf(prtMsg, "%d sockets binded!", iSockNum);
+        printInfo(prtMsg);
+
     }
 
     struct in_addr bitwise_and(struct in_addr ip, struct in_addr mask) {
@@ -333,6 +341,7 @@ LSEND_PORT_AGAIN:
 
     void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
         // timeout mechanism initialization
+        printInfo("Sending data...");
         if (rttinit == 0) {
             rtt_init(&rttinfo);
             rttinit = 1;
@@ -353,7 +362,7 @@ LSEND_PORT_AGAIN:
                             printInfo("time out and give up");
                             rttinit = 0;
                         }
-                        //time out
+                        printInfo("Time out, restransmitting...");
                     }
 
                     for(int i = iBufBase, j = 0; i < datagram_num && j < server_config.server_win_size; ++i, ++j) {
@@ -362,8 +371,7 @@ LSEND_PORT_AGAIN:
                         }
                         setPackTime(&send_buf[i], rtt_ts(&rttinfo) );
                         write(conn_sockfd, &send_buf[i], sizeof(send_buf[i]));
-                        printInfoIntItem("sent", getSeqNum(&send_buf[i]));
-                        //++iBufEnd;
+                        printPackInfo(&send_buf[i]);
                     }
                     iBufEnd = min(iBufBase + server_config.server_win_size, datagram_num);
                 }
@@ -373,6 +381,8 @@ LSEND_PORT_AGAIN:
                 struct Payload ack;
                 read(conn_sockfd, &ack, sizeof(ack));
                 if (isValidAck(&ack, 0)) {
+                    printInfo("Ack received (see next line)");
+                    printPackInfo(&ack);
                     int idx = getAckIdx(&ack, iBufBase);
                     if (idx >= iBufEnd || idx < iBufBase) {
                         continue;
@@ -391,33 +401,23 @@ LSEND_PORT_AGAIN:
                         alarm(iNewDur > iElapsed ? iNewDur - iElapsed : 1);
                     }
                     int iRecvWinSize = getWinSize(&ack);
-                    printInfoIntItem("receiver's window size", iRecvWinSize);
                     if (getWinSize(&ack) == 0) {
                         iClientBufFull = 1;
+                        printInfo("Receiving window is full, waiting for open again");
                     }
                 }
             }
 
             alarm(0);
             if (iBufBase == iBufEnd && iBufBase == datagram_num) {
-                printInfo("Child terminates");
+                printInfo("Child process terminates");
                 return;
             }
         }
-        printInfo("file transfer is ok till now");
     }
 
     static void sig_alrm(int signo) {
         siglongjmp(jmpbuf, 1);
-    }
-
-    void sig_chld(int signo) {
-        pid_t pid;
-        int stat;          
-        while(  (pid=waitpid(-1, &stat, WNOHANG) ) > 0) {
-            printf("child %d terminated\n", pid);
-        }
-        return;
     }
 
     int getAckIdx(const struct Payload* ack, int iBufBase) {
