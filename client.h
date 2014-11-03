@@ -35,5 +35,6 @@ void* printData(void *arg);
 void getSleepTime(struct timespec* tm);
 static void sig_alrm(int signo);
 void sig_chld(int signo);
+int isDropped();
 
 #endif
