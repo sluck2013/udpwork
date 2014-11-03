@@ -27,7 +27,7 @@ void readConfig();
 void bindSockets();
 void listenSockets();
 int isLocal(struct sockaddr_in *clientAddr);
-void handleRequest(int iListenSock, struct sockaddr_in *pcClientAddr, const char* request_file );
+void handleRequest(int iListenSock, struct sockaddr_in *pcClientAddr, const char* request_file, unsigned long int fnameSeqNum);
 struct in_addr bitwise_and(struct in_addr ip, struct in_addr mask);
 void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr);
 

@@ -19,6 +19,7 @@ struct Payload plReadBuf[MAX_BUF_SIZE];
 unsigned long int iBufBase = 0;
 unsigned long int iBufEnd = 0;
 unsigned long int seqNum = 10;
+unsigned long int serverSeqNumStart;
 static sigjmp_buf jmpbuf;
 int rttinit=0;
 static struct rtt_info rttinfo;
@@ -31,6 +32,7 @@ pthread_cond_t iRecvBufFull_cond = PTHREAD_COND_INITIALIZER;
 int iRecvBufFull = 0;
 
 int main(int argc, char **argv) {
+    //seed48(config.seed);
     readConfig();      // read client.in
     setIPClient();     // setIPClient
     createUDPSocket(); // create UDP socket
@@ -211,10 +213,10 @@ void createUDPSocket() {
     // timeout mechanism initialization for file name transfer to server
     struct Payload sendfileBuf;
     
-    if(rttinit==0) {
+    if (rttinit == 0) {
         rtt_init(&rttinfo);
-        rttinit=1;
-        rtt_d_flag=1;
+        rttinit = 1;
+        rtt_d_flag = 1;
     }
     signal(SIGALRM, sig_alrm);
     rtt_newpack(&rttinfo);
@@ -241,6 +243,7 @@ LSEND_FILENAME_AGAIN:
         Read(sockfd, &rawNewPort, sizeof(rawNewPort));
         if (isValidAck(&rawNewPort, getSeqNum(&sendfileBuf))) {
             config.port = atoi(rawNewPort.data);
+            serverSeqNumStart = getSeqNum(&rawNewPort) + 1;
             break;
         }
     }
@@ -281,6 +284,7 @@ LSEND_FILENAME_AGAIN:
         struct Payload msg;
         Read(sockfd, &msg, sizeof(msg));
         if(isDropped()) {
+            printInfoIntItem("package dropped, seqNum", getSeqNum(&msg));
             continue;
         }
         
@@ -296,9 +300,12 @@ LSEND_FILENAME_AGAIN:
             }
         }
 
-        plReadBuf[iBufEnd] = msg;
+        plReadBuf[getSeqNum(&msg) - serverSeqNumStart] = msg;
+        
         Pthread_mutex_lock(&iBufEnd_mutex);
-        ++iBufEnd;
+        while(getSeqNum(&plReadBuf[iBufEnd]) > 0) {
+            ++iBufEnd;
+        }
         if (getWinSize() == 0) {
             Pthread_mutex_lock(&iRecvBufFull_mutex);
             iRecvBufFull = 1;
@@ -310,8 +317,15 @@ LSEND_FILENAME_AGAIN:
         if (iBufEnd > MAX_BUF_SIZE) {
             printErr(ERR_READ_BUF_OVERFLOW);
         }
-        //if receive FIN, terminate printData();
-        //use pipe to notify printData data ready
+
+        if (isFin(&msg)) {
+            alarm(MSL);
+            if (sigsetjmp(jmpbuf, 1) != 0) {
+                Close(sockfd);
+                printInfo("Socekt closed!");
+                return;
+            }
+        }
     }
     Pthread_join(tid, NULL);
 }
@@ -355,12 +369,8 @@ void* printData(void *arg) {
 }
 
 void getSleepTime(struct timespec* tm) {
-    //TODO: turn on rand!!!
-    //seed48(config.seed);
-    //double r = drand48();
-    //printf("%F\n", r);
-    double r = 0.45;
-    double f = config.mu * log(r); 
+    float r = drand48();
+    float f = config.mu * log(r); 
     int iMilliSec = -(int)f;
     tm->tv_sec = iMilliSec / 1000;
     tm->tv_nsec = iMilliSec % 1000 * 1000000;
@@ -372,12 +382,11 @@ static void sig_alrm(int signo) {
 
 
 int isDropped() {
-    float r= drand48();
-    if ( r< config.pLoss) {
+    float r = drand48();
+    if ( r < config.pLoss) {
         return 1;    // drop packet
     }
     else {
         return 0;   // keep packet
     }
 }
-

@@ -25,4 +25,8 @@
 //#define PAYLOAD_SIZE (512)
 #define MAX_BUF_SIZE (500)
 
+#define ACK (128)
+#define FIN (64)
+#define MSL (3)
+
 #endif

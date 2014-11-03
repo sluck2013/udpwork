@@ -20,14 +20,18 @@ void newAck(struct Payload* datagram, unsigned long int seqNum,
         unsigned long int ackNum, unsigned short int winSize,
         unsigned long int timestamp);
 void setPackTime(struct Payload *datagram, unsigned long int timestamp);
+void setPackFlag(struct Payload *datagram, unsigned char flag);
 inline int isValidAck(const struct Payload* ack, unsigned long int seqNum) {
-    int r = ((ack->header.flag & (1 << 7)) == (1 << 7));
+    int r = ((ack->header.flag & ACK) == ACK);
     if (seqNum != 0) {
         r = r && (ack->header.ackNum == seqNum);
     }
     return r;
 }
 
+inline int isFin(struct Payload *datagram) {
+    return ((datagram->header.flag & FIN) == FIN);
+}
 
 ////////////for debug///////:TODO
 void printAddrInfo(SA* addr);
