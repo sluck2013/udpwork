@@ -85,8 +85,8 @@ void listenSockets() {
                 int n= read(socket_config[num].sockfd, &recvfileBuf, sizeof(recvfileBuf));
 
                 if (n < 0) {
-                    printf("num:%d\n",num);
-                    printf("%s\n", strerror(errno));
+                    printInfoIntItem("num: ", num);
+                    printf("%s\n", strerror(errno)); 
                     errQuit(ERR_READ_DATA_FROM_CLI);
                 }
 
@@ -116,14 +116,14 @@ void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const ch
     //char = 1;
     //TODO: uncomment
     if(isLocal(pClientAddr)) {
-        printf("Client host is local\n");
+        printInfo("Client host is local");
         if(setsockopt(socket_config[iListenSockIdx].sockfd, 
                     SOL_SOCKET, SO_DONTROUTE, &on, sizeof(on)) < 0) {
-            printf("setting socket error \n");
+            printInfo("setting socket error ");
             exit(1);
         }
     } else {
-        printf("client host is not local\n");
+        printInfo("client host is not local");
     }
 
     /*  server child creates "connection" socket */
@@ -176,15 +176,17 @@ LSEND_PORT_AGAIN:
         //write(socket_config[iListenSockIdx].sockfd, &newPortPack, sizeof(newPortPack) );
         if (sendto(socket_config[iListenSockIdx].sockfd, &newPortPack,
                 sizeof(newPortPack), 0, (SA*)pClientAddr, sizeof(*pClientAddr)) < 0) {
-            printf("sending error %s\n", strerror(errno));
+            //printf("sending error %s\n", strerror(errno)); 
+               printErr("sending error");
         } else {
-            printf("send ephemeral port number %s to client \n", serv_ephe_port);
+            //printf("send ephemeral port number %s to client \n", serv_ephe_port);
+               printItem("send ephemeral port number to client", serv_ephe_port);
         }      
         alarm(rtt_start(&rttinfo));
 
         if (sigsetjmp(jmpbuf, 1) != 0) {
             if (rtt_timeout(&rttinfo) < 0) {
-                printf("time out and give up \n");
+                printInfo("time out and give up ");
                 // in the event of the server timing out, retransmit two copies to listening socket and connection socket
                 setPackTime(&newPortPack, rtt_ts(&rttinfo) );
                 write(conn_sockfd, &newPortPack, sizeof(newPortPack) );
@@ -208,15 +210,15 @@ LSEND_PORT_AGAIN:
 
         rtt_stop(&rttinfo, rtt_ts(&rttinfo) - getTimestamp(&newPortPack));
     
-    printf("ephemeral port number transmission is ok \n");    
+    printInfo("ephemeral port number transmission is ok ");    
 
     // transfer file
-    printf("file name: %s\n", request_file);
+    printItem("file name", request_file);
     FILE* fileDp;
     fileDp = fopen(request_file, "r");
 
     if (fileDp == NULL) {
-        printf("cannot open file!\n");
+        printInfo("cannot open file!");
         exit(1);
     } 
 
@@ -266,8 +268,8 @@ void readConfig() {
 
     fclose(config_file);
 
-    printf("server port is : %d\n", server_config.server_port);
-    printf("window size is: %d\n", server_config.server_win_size);
+    printInfoIntItem("server port is: ", server_config.server_port);
+    printInfoIntItem("window size is: ", server_config.server_win_size);
 
     println();
 }
@@ -307,7 +309,8 @@ void bindSockets() {
                 socket_config[count].ip, socket_config[count].mask); 
 
         printIfiInfo(ifi);
-        printf("Subnet address: %s\n", inet_ntoa(socket_config[count].subnet));
+        //printf("Subnet address: %s\n", inet_ntoa(socket_config[count].subnet));
+        printItem("Subnet address", inet_ntoa(socket_config[count].subnet) );
 
         ++count;
     }
@@ -355,7 +358,7 @@ void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
             alarm(rtt_start(&rttinfo));
             if (sigsetjmp(jmpbuf, 1) != 0) {
                 if (rtt_timeout(&rttinfo) < 0) {
-                    printf("time out and give up \n");
+                    printInfo("time out and give up");
                     rttinit = 0;
                 }
                 //time out
@@ -402,7 +405,7 @@ void sendData(int conn_sockfd, struct sockaddr_in *pClientAddr) {
         
         alarm(0);
     }
-    printf("file transfer is ok till now\n");
+    printInfo("file transfer is ok till now");
 }
 
 static void sig_alrm(int signo) {

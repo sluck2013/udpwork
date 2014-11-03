@@ -227,7 +227,7 @@ LSEND_FILENAME_AGAIN:
 
         if (sigsetjmp(jmpbuf, 1) != 0) {
             if (rtt_timeout(&rttinfo) < 0) {
-                printf("time out and give up \n");
+                printInfo("time out and give up ");
                 rttinit = 0;
             }
             goto LSEND_FILENAME_AGAIN;
@@ -248,7 +248,7 @@ LSEND_FILENAME_AGAIN:
 
         rtt_stop(&rttinfo, rtt_ts(&rttinfo) - getTimestamp(&sendfileBuf));
     
-    printf("file name transmission is ok \n");    
+    printInfo("file name transmission is ok ");    
 
     
     //reconnect to "connection" socket
@@ -280,7 +280,10 @@ LSEND_FILENAME_AGAIN:
 
         struct Payload msg;
         Read(sockfd, &msg, sizeof(msg));
-
+        if(isDropped()) {
+            continue;
+        }
+        
         struct Payload ack;
         Pthread_mutex_lock(&iBufBase_mutex);
         newAck(&ack, seqNum++, getSeqNum(&msg), getWinSize(), getTimestamp(&msg));
@@ -368,13 +371,13 @@ static void sig_alrm(int signo) {
 }
 
 
-int dropIt() {
+int isDropped() {
     float r= drand48();
     if ( r< config.pLoss) {
-        return 0;    // drop
+        return 1;    // drop packet
     }
     else {
-        return 1;   // keep
+        return 0;   // keep packet
     }
 }
 

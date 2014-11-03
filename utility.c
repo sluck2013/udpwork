@@ -28,7 +28,7 @@ void printInfo(char* info) {
 }
 
 void printInfoIntItem(char* item, int info) {
-    printf("%s: %d\n", item, info);
+    printf("INFO: %s: %d\n", item, info);
     fflush(stdout);
 }
 
