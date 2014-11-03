@@ -349,6 +349,7 @@ LSEND_PORT_AGAIN:
         int ssthresh = 65536;
         int iRecvWin = server_config.server_win_size;
         int iRealWin = min(cwnd, iRecvWin);
+        int iRcvedThird = 0;
         // timeout mechanism initialization
         printInfo("Sending data...");
         if (rttinit == 0) {
@@ -363,6 +364,7 @@ LSEND_PORT_AGAIN:
         int iBufEnd = 0;
         int iClientBufFull = 0;
         while (iBufBase <= datagram_num) {
+            iRcvedThird = 0;
             if (iBufBase < datagram_num) {
                 if (!iClientBufFull) {
                     alarm(rtt_start(&rttinfo));
@@ -372,11 +374,13 @@ LSEND_PORT_AGAIN:
                         }
                         alarm(rtt_start(&rttinfo));
                         printInfo("Time out, restransmitting...");
+                        ssthresh = cwnd / 2;
+                        cwnd = 1;
                     }
 
                     int i, j;
                     for(i = iBufBase, j = 0; i < datagram_num && j < server_config.server_win_size; ++i, ++j) {
-                        if (recvd_ack[i]) {
+                        if (recvd_ack[i] > 0) {
                             continue;
                         }
                         setPackTime(&send_buf[i], rtt_ts(&rttinfo) );
@@ -397,12 +401,35 @@ LSEND_PORT_AGAIN:
                     if (idx >= iBufEnd || idx < iBufBase) {
                         continue;
                     }
+
+                    /* slow start & congestion avoidance */
+                    if (recvd_ack[idx] == 1) {
+                        // ack used to open window
+                        if (iClientBufFull && getWinSize(&ack) > 0) {
+                            continue; 
+                        }
+                        ssthresh = cwnd / 2;
+                    } else if (recvd_ack[idx] == 0) {
+                        if (cwnd <= ssthresh) {
+                            cwnd *= 2;
+                        } else {
+                            ++cwnd;
+                        }
+                    } else if (recvd_ack[idx] == 2) {
+                        if (iRcvedThird) {
+                            ++cwnd;
+                        } else {
+                            ssthresh = cwnd / 2;
+                            cwnd = ssthresh + 3;
+                        }
+                    }
+
                     recvd_ack[idx] = 1;
                     unsigned long int ackTime = rtt_ts(&rttinfo);
                     unsigned long int timeDelta = ackTime - getTimestamp(&send_buf[idx]);
                     rtt_stop(&rttinfo, timeDelta);
                     if (idx == iBufBase) {
-                        while (recvd_ack[iBufBase]) {
+                        while (recvd_ack[iBufBase] > 0) {
                             ++iBufBase;
                         }
                         /* set new alarm on each ack receipt */
@@ -416,6 +443,8 @@ LSEND_PORT_AGAIN:
                     if (iRealWin == 0) {
                         iClientBufFull = 1;
                         printInfo("Receiving window is full, waiting for open again");
+                    } else {
+                        iClientBufFull = 0;
                     }
                 }
             }
