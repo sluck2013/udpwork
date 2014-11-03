@@ -20,7 +20,7 @@ struct socket_configuration
 struct server_configuration
 {
     int server_port; 
-    short int server_win_size;
+    int server_win_size;
 };
 
 void readConfig();

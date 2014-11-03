@@ -1,6 +1,6 @@
 CC = gcc
-UNP_PATH = /home/courses/cse533/Stevens/unpv13e_Solaris2.10/unpv13e
-LIBS = -lresolv -lnsl -lpthread $(UNP_PATH)/libunp.a -lsocket
+UNP_PATH = /home/courses/cse533/Stevens/unpv13e_solaris2.10
+LIBS = -lresolv -lnsl -lpthread $(UNP_PATH)/libunp.a -lsocket -lrt
 
 IFLAG = -I$(UNP_PATH)/lib 
 CFLAGS = -g -O2

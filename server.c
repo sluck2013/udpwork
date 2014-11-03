@@ -53,7 +53,8 @@ void listenSockets() {
 
     FD_ZERO(&rset);
     while (1) {
-        for(int num = 0; num < iSockNum; ++num) {
+        int num;
+        for(num = 0; num < iSockNum; ++num) {
             FD_SET(socket_config[num].sockfd, &rset);
         }
 
@@ -68,7 +69,6 @@ void listenSockets() {
 
         //check each interface to see if it can read and 
         //find the one that can read (num)
-        int num;
         for(num = 0; num < iSockNum; ++num) {
             if(FD_ISSET(socket_config[num].sockfd, &rset)) {
                 struct sockaddr_in cliaddr;

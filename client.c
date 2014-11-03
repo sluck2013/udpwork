@@ -303,7 +303,6 @@ LSEND_FILENAME_AGAIN:
         Read(sockfd, &msg, sizeof(msg));
         if(isDropped()) {
             printInfo("Package dropped! (See next line for details)");
-            printInfoIntItem("dd", getSeqNum(&msg));
             printPackInfo(&msg);
             continue;
         }
@@ -380,18 +379,21 @@ void* printData(void *arg) {
         struct timespec tm, tmRemain;
         getSleepTime(&tm);
         nanosleep(&tm, &tmRemain);
+        sprintf(prtMsg, "Sleeping for %d ms...");
+        printInfo(prtMsg);
         
         Pthread_mutex_unlock(&iBufEnd_mutex);
     }
     return NULL;
 }
 
-void getSleepTime(struct timespec* tm) {
+unsigned long int getSleepTime(struct timespec* tm) {
     float r = drand48();
     float f = config.mu * log(r); 
     int iMilliSec = -(int)f;
     tm->tv_sec = iMilliSec / 1000;
     tm->tv_nsec = iMilliSec % 1000 * 1000000;
+    return iMilliSec;
 }
 
 static void sig_alrm(int signo) {
