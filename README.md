@@ -97,7 +97,7 @@ of the congestion window's previous value.
 and the slow start threshold is also set to this value.
 
 
-5. dealing with certain issues
+ 5 : dealing with certain issues
 
 -Sender notifying receiver of the last datagram:
 
