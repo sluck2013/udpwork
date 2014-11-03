@@ -64,12 +64,30 @@ data to get the other vacancies to be filled. In other words, we impelemnted wit
 
 
 B: Flow Control:
+
 Our implemention of flow control uses the receiving window which is sent by the client to the server
 with the initial connection setup (file request) message, and with every ACK.
 
 -Receive Window Flow Control:
 This window value is updated and checked upon each message send to ensure that the server will
 not overflow the clients receive window. IF the window is full, a duplicate ACK is sent by client as soon as window opens again.
+
+C: Congestion Control:
+
+-Slow Start
+When a new connection is established, cwnd (congestion window) is assigned to 1, sender starts sending data according to 
+the size of cwnd, whenever a datagram is acknowledged, the size of cwnd increases exponentially with the RTT.(1, 2, 4, 8, ......).
+If the bandwidth is w, it will take RTT*logW to occupy the full bandwidth.
+
+-Congestion Avoidance('AIMD')
+ From slow start, cwnd will increase very quickly, TCP uses ssthresh as the upper limit of cwnd. When it exceeds ssthresh, slow start ends, 
+ then it comes to congestion avoidance. We use Additive-Increase now, meaning that cwnd increases by one each time an ACK is received. 
+ When a datagram is lost, ssthresh is decreased to half of cwnd, cwnd is resetted to 1 and we re-enter slow start.
+
+ -Fast Recovery
+  1. When the third duplicate ACK is received, set ssthresh to one-half the cwnd. Retransmit the missing segment and set cwnd to ssthresh plus 3 times segment size. 
+  2. Whenver another duplicate ACK arrives, increment cwnd by the segment size and transmit a packet. 
+  3. When next ACK arrives that acknowledges new data, set cwnd to ssthresh(in step 1). Then we go back to congestion avoidance. 
 
 
 
