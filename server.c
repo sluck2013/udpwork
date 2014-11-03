@@ -347,8 +347,8 @@ LSEND_PORT_AGAIN:
         // used for slow start & congestion avoidance
         int cwnd = 1;  
         int ssthresh = 65536;
-        int rec_win = server_config.server_win_size;
-        int real_win = min(cwnd, rec_win);
+        int iRecvWin = server_config.server_win_size;
+        int iRealWin = min(cwnd, iRecvWin);
         // timeout mechanism initialization
         printInfo("Sending data...");
         if (rttinit == 0) {
@@ -365,7 +365,6 @@ LSEND_PORT_AGAIN:
         while (iBufBase <= datagram_num) {
             if (iBufBase < datagram_num) {
                 if (!iClientBufFull) {
-                    printInfo("AAX");
                     alarm(rtt_start(&rttinfo));
                     if (sigsetjmp(jmpbuf, 1) != 0) {
                         if (rtt_timeout(&rttinfo) < 0) {
@@ -384,7 +383,7 @@ LSEND_PORT_AGAIN:
                         Write(conn_sockfd, &send_buf[i], sizeof(send_buf[i]));
                         printPackInfo(&send_buf[i]);
                     }
-                    iBufEnd = min(iBufBase + real_win, datagram_num);
+                    iBufEnd = min(iBufBase + iRealWin, datagram_num);
                 }
             }
 
@@ -411,8 +410,10 @@ LSEND_PORT_AGAIN:
                         unsigned long int iNewDur = rtt_start(&rttinfo);
                         alarm(iNewDur > iElapsed ? iNewDur - iElapsed : 1);
                     }
-                    int iRecvWinSize = getWinSize(&ack);
-                    if (getWinSize(&ack) == 0) {
+                    iRecvWin = getWinSize(&ack);
+                    iRealWin = min(iRecvWin, cwnd);
+
+                    if (iRealWin == 0) {
                         iClientBufFull = 1;
                         printInfo("Receiving window is full, waiting for open again");
                     }

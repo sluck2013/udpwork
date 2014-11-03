@@ -75,7 +75,7 @@ void readConfig() {
     printf("Sever's well-know port: %d\n", config.port);
     printf("File to request: %s\n", config.dataFile);
     printf("Receive window size: %d\n", config.recvWinSize);
-    printf("Seed: %d", config.seed);
+    printf("Seed: %d\n", config.seed);
     printf("Problability of data loss: %f\n", config.pLoss);
     printf("mu: %d\n", config.mu);
     printf("=======================================\n");
@@ -290,6 +290,7 @@ LSEND_FILENAME_AGAIN:
     pthread_t tid;
     struct Arg arg;
     arg.sockfd = sockfd;
+    struct Payload ack;
 
     Pthread_create(&tid, NULL, printData, NULL);
     while (1) {
@@ -298,6 +299,12 @@ LSEND_FILENAME_AGAIN:
             Pthread_cond_wait(&iRecvBufFull_cond, &iRecvBufFull_mutex);
         }
         Pthread_mutex_unlock(&iRecvBufFull_mutex);
+        if (getWinSize(&ack) == 0) {
+            printInfo("Receiving window reopens. Sending dupliate ACK...");
+            setPackWinSize(&ack, getWindowSize());
+            Write(sockfd, &ack, sizeof(ack)); 
+            printPackInfo(&ack);
+        }
 
         struct Payload msg;
         read(sockfd, &msg, sizeof(msg));
@@ -307,7 +314,6 @@ LSEND_FILENAME_AGAIN:
             continue;
         }
         
-        struct Payload ack;
         Pthread_mutex_lock(&iBufBase_mutex);
         newAck(&ack, seqNum++, getSeqNum(&msg), getWindowSize(), getTimestamp(&msg));
         Pthread_mutex_unlock(&iBufBase_mutex);
@@ -354,7 +360,7 @@ LSEND_FILENAME_AGAIN:
 
 unsigned short int getWindowSize() {
     int endpoint = min(iBufBase + config.recvWinSize, MAX_BUF_SIZE);
-    return endpoint - iBufEnd;
+    return endpoint > iBufEnd ? endpoint - iBufEnd : 0;
 }
 
 void* printData(void *arg) {
@@ -364,17 +370,19 @@ void* printData(void *arg) {
         while (iBufBase >= iBufEnd) {
             Pthread_cond_wait(&iBufEnd_cond, &iBufEnd_mutex);
         }
-        printf("%s\n", plReadBuf[iBufBase].data);
+        //printf("%s\n", plReadBuf[iBufBase].data);
         fflush(stdout);
 
         Pthread_mutex_lock(&iBufBase_mutex);
         ++iBufBase;
         Pthread_mutex_unlock(&iBufBase_mutex);
 
-        Pthread_mutex_lock(&iRecvBufFull_mutex);
-        iRecvBufFull = 0;
-        Pthread_cond_signal(&iRecvBufFull_cond);
-        Pthread_mutex_unlock(&iRecvBufFull_mutex);
+        if (getWindowSize() > 0) {
+            Pthread_mutex_lock(&iRecvBufFull_mutex);
+            iRecvBufFull = 0;
+            Pthread_cond_signal(&iRecvBufFull_cond);
+            Pthread_mutex_unlock(&iRecvBufFull_mutex);
+        }
 
         struct timespec tm, tmRemain;
         unsigned long int t = getSleepTime(&tm);

@@ -83,6 +83,10 @@ void setPackFlag(struct Payload *datagram, unsigned char flag) {
     datagram->header.flag = flag;
 }
 
+void setPackWinSize(struct Payload *datagram, short int winSize) {
+    datagram->header.winSize = winSize;
+}
+
 void newAck(struct Payload* datagram, unsigned long int seqNum,
         unsigned long int ackNum, unsigned short int winSize,
         unsigned long int timestamp) {
