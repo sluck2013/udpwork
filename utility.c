@@ -110,6 +110,19 @@ unsigned long int getWinSize(const struct Payload* datagram) {
 void printPackInfo(const struct Payload* datagram) {
     printf("DATA: SEQ#:%lu, ACK#:%lu, TIMESTAMP:%lu, WINSIZE:%d, FIN:%d, ACK:%d\n", getSeqNum(datagram), getAckNum(datagram), getTimestamp(datagram), getWinSize(datagram), isFin(datagram), isValidAck(datagram, 0));
 }
+
+int isValidAck(const struct Payload* ack, unsigned long int seqNum) {
+    int r = ((ack->header.flag & ACK) == ACK);
+    if (seqNum != 0) {
+        r = r && (ack->header.ackNum == seqNum);
+    }
+    return r;
+}
+
+int isFin(struct Payload *datagram) {
+    return ((datagram->header.flag & FIN) == FIN);
+}
+
 ///////////////////for debug use///////////////:TODO
 void printAddrInfo(SA *addr) {
     struct sockaddr_in *si = (struct sockaddr_in*)addr;

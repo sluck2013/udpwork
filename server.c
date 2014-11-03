@@ -44,7 +44,8 @@ void listenSockets() {
 
     /* to see which file descriptor is the largest */
     maxfd = socket_config[0].sockfd; //assume first one is largest
-    for(int socket_cnt = 0; socket_cnt < iSockNum; ++socket_cnt) {
+    int socket_cnt;
+    for(socket_cnt = 0; socket_cnt < iSockNum; ++socket_cnt) {
         if(socket_config[socket_cnt].sockfd > maxfd) {
             maxfd = socket_config[socket_cnt].sockfd;
         }
@@ -67,7 +68,8 @@ void listenSockets() {
 
         //check each interface to see if it can read and 
         //find the one that can read (num)
-        for(int num = 0; num < iSockNum; ++num) {
+        int num;
+        for(num = 0; num < iSockNum; ++num) {
             if(FD_ISSET(socket_config[num].sockfd, &rset)) {
                 struct sockaddr_in cliaddr;
                 int len_cliaddr = sizeof(cliaddr);
@@ -97,7 +99,8 @@ void listenSockets() {
 }
 
 void handleRequest(int iListenSockIdx, struct sockaddr_in *pClientAddr, const char *request_file, unsigned long int fnameSeqNum) {
-    for (int socket_cnt = 0; socket_cnt < iSockNum; ++socket_cnt) {
+    int socket_cnt;
+    for (socket_cnt = 0; socket_cnt < iSockNum; ++socket_cnt) {
         if(socket_cnt != iListenSockIdx) {
             /* close all sockets other than "listening" */
             close(socket_config[socket_cnt].sockfd);
@@ -324,7 +327,8 @@ LSEND_PORT_AGAIN:
     }
 
     int isLocal(struct sockaddr_in *clientAddr) {
-        for(int k = 0; k < iSockNum; k++) {
+        int k;
+        for(k = 0; k < iSockNum; k++) {
             uint32_t uServerAddr = socket_config[k].ip.s_addr;
             uint32_t uMaskAddr = socket_config[k].mask.s_addr;
             uint32_t uClientAddr = clientAddr->sin_addr.s_addr;
@@ -365,7 +369,8 @@ LSEND_PORT_AGAIN:
                         printInfo("Time out, restransmitting...");
                     }
 
-                    for(int i = iBufBase, j = 0; i < datagram_num && j < server_config.server_win_size; ++i, ++j) {
+                    int i, j;
+                    for(i = iBufBase, j = 0; i < datagram_num && j < server_config.server_win_size; ++i, ++j) {
                         if (recvd_ack[i]) {
                             continue;
                         }

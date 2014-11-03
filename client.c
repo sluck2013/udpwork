@@ -59,7 +59,8 @@ void readConfig() {
     res[6] = fscanf(fConfig, "%ud", &config.mu);
     config.recvWinSize = min(config.recvWinSize, MAX_BUF_SIZE);
 
-    for (int i = 0; i < 7; ++i) {
+    int i;
+    for (i = 0; i < 7; ++i) {
         if (res[i] <= 0) {
             errQuit(ERR_READ_CLIENT_IN);
         }
@@ -124,7 +125,8 @@ void setIPClient() {
  *        linked list returned by Get_ifi_info_plus()
  */
 int isOnSameHost(struct ifi_info *ifiHead) {
-    for (struct ifi_info *ifi = ifiHead; ifi != NULL; ifi = ifi->ifi_next) {
+    struct ifi_info *ifi;
+    for (ifi = ifiHead; ifi != NULL; ifi = ifi->ifi_next) {
         struct sockaddr *sa = ifi->ifi_addr;
         char *clientIP = Sock_ntop_host(sa, sizeof(*sa));
         if (strcmp(config.serverAddr, clientIP) == 0) {
@@ -152,7 +154,8 @@ int isLocal(struct ifi_info *ifiHead, struct ifi_info **ifiMatch) {
     int iIsLocal = 0;
     int iMaxPrefixLen = 0;
 
-    for (struct ifi_info *ifi = ifiHead; ifi != NULL; ifi = ifi->ifi_next) {
+    struct ifi_info *ifi;
+    for (ifi = ifiHead; ifi != NULL; ifi = ifi->ifi_next) {
         clientAddr = ((struct sockaddr_in*)ifi->ifi_addr)->sin_addr;
         maskAddr = ((struct sockaddr_in*)ifi->ifi_ntmaddr)->sin_addr;
         uint32_t r1 = serverAddr.s_addr & maskAddr.s_addr;
@@ -307,7 +310,7 @@ LSEND_FILENAME_AGAIN:
         
         struct Payload ack;
         Pthread_mutex_lock(&iBufBase_mutex);
-        newAck(&ack, seqNum++, getSeqNum(&msg), getWinSize(), getTimestamp(&msg));
+        newAck(&ack, seqNum++, getSeqNum(&msg), getWindowSize(), getTimestamp(&msg));
         Pthread_mutex_unlock(&iBufBase_mutex);
         Write(sockfd, &ack, sizeof(ack));
         printInfo("Sent ack");
@@ -325,7 +328,7 @@ LSEND_FILENAME_AGAIN:
         while(getSeqNum(&plReadBuf[iBufEnd]) > 0) {
             ++iBufEnd;
         }
-        if (getWinSize() == 0) {
+        if (getWindowSize() == 0) {
             Pthread_mutex_lock(&iRecvBufFull_mutex);
             iRecvBufFull = 1;
             Pthread_mutex_unlock(&iRecvBufFull_mutex);
@@ -350,7 +353,7 @@ LSEND_FILENAME_AGAIN:
     Pthread_join(tid, NULL);
 }
 
-inline unsigned short int getWinSize() {
+unsigned short int getWindowSize() {
     int endpoint = min(iBufBase + config.recvWinSize, MAX_BUF_SIZE);
     return endpoint - iBufEnd;
 }
