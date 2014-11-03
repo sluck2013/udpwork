@@ -49,14 +49,14 @@ We have two modifications listed below.
 4: TCP Mechanisms:
 
 A: Reliable data transmission:
-We implemented reliable data transmission using ARQ sliding-windows, with Fast Retransmit. This was
-accomplished with the linked list data structure for the window, outlined above, and the use of ACK's
-from the client.
+We implemented reliable data transmission using ARQ sliding-windows, with Fast Retransmit. 
 
 -Timeouts:
-Upon reading data from the file, and when the window can be added to, the packet is made and added to
-the window. A timeout is set for the longest in-flight packet, which, upon triggering will resend this
-first packet. This timeout was based on the RTO that was calculated with the RTT.
+Our timeout mechanism is realized with reference to Figure 22.7, 22.8 and 22.9. We used the timeout mechanism
+three times. 
+i. The client sends a datagram to the server giving the filename. This send needs to be back up by a timeout (client side)
+ii. Timeout mechanism for server sending ephemeral port number to client (server side)
+iii. Timeout mechanism for server sending data to client (server side)
 
 -Processing ACKs:
 Upon receiving an ACK for a packet, which may be cumulative, the server will remove all packets from
